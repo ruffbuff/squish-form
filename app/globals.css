@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #141210;
+  --panel: #1c1a17;
+  --line: rgba(255, 246, 236, 0.1);
+  --ink: #f6f1ea;
+  --muted: #a39c93;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(255, 244, 232, 0.7);
+  outline-offset: 2px;
+}
+
+.color-swatch {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  overflow: hidden;
+  cursor: pointer;
+  flex: none;
+}
+
+.color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 999px;
+}
+
+.color-swatch::-moz-color-swatch {
+  border: none;
+  border-radius: 999px;
+}
+
+.download {
+  width: 100%;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  padding: 0.75rem 1rem;
+  transition: background 160ms ease;
+}
+
+.download:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
