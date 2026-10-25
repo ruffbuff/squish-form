@@ -38,15 +38,15 @@ export type PlacedEyes = {
 export const EYE_INSET_DEFAULT = 0.62;
 
 /**
- * How many eye-radii the center sits outside the surface.
- * Positive is proud of the mesh, negative is inside it.
- * The left end of the slider is a dome that still touches. The right end
- * leaves only a cap. Default sits the center inside so a side view shows
- * a bump on the skin, not a ball in the air.
+ * Fraction of this eye's own depth (radius × mood depth scale).
+ * Positive sits the center proud of the skin. Negative sinks it.
+ * The value is a fraction of the eye that is actually drawn, so a flat
+ * sleep lid is not pushed completely behind the surface.
  */
 export function eyeProtrusion(inset: number, sink: number) {
   const t = THREE.MathUtils.clamp(inset, 0, 1);
-  return THREE.MathUtils.lerp(0.0, -1.12, t) - sink;
+  // 0 is a dome on the skin. 1 leaves a shallow cap. Default is seated.
+  return THREE.MathUtils.lerp(0.05, -0.58, t) - sink;
 }
 
 type EyeLayout = { y: number; spread: number; sink: number };
@@ -56,14 +56,14 @@ type EyeLayout = { y: number; spread: number; sink: number };
  * sink is extra radii buried on top of the slider, for curvature.
  */
 const LAYOUT: Record<SilhouetteId, EyeLayout> = {
-  blob: { y: 0.08, spread: 0.15, sink: 0.06 },
+  blob: { y: 0.08, spread: 0.16, sink: 0.05 },
   bean: { y: 0.08, spread: 0.16, sink: 0.02 },
-  squircle: { y: 0.04, spread: 0.16, sink: 0.0 },
-  pear: { y: 0.06, spread: 0.13, sink: 0.04 },
-  pill: { y: 0.02, spread: 0.15, sink: 0.0 },
-  bun: { y: 0.06, spread: 0.14, sink: 0.02 },
-  mochi: { y: 0.02, spread: 0.16, sink: 0.0 },
-  bud: { y: -0.02, spread: 0.14, sink: 0.1 },
+  squircle: { y: 0.04, spread: 0.18, sink: 0.0 },
+  pear: { y: 0.06, spread: 0.14, sink: 0.04 },
+  pill: { y: 0.02, spread: 0.16, sink: 0.0 },
+  bun: { y: 0.06, spread: 0.15, sink: 0.02 },
+  mochi: { y: 0.04, spread: 0.18, sink: 0.0 },
+  bud: { y: -0.02, spread: 0.15, sink: 0.08 },
 };
 
 /** Scale factors on top of the eye-size radius. The still pose has to read with no motion. */
@@ -101,30 +101,30 @@ export function eyeMoodMotion(mood: EyeMood, time: number, damp = 1): EyeMotion 
       scaleX: 1 + up * 0.24 * damp,
       scaleY: 1 - (0.5 + 0.5 * wave) * 0.7 * damp,
       scaleZ: 1,
-      bob: up * up * 3.6 * damp,
+      bob: up * up * 1.6 * damp,
     };
   }
   if (mood === "sleep") {
     const breath = 0.5 + 0.5 * Math.sin(time * 1.7);
     // The still pose is a slit. The open half of the breath reaches a calm eye.
     return {
-      scaleX: 1 + breath * 0.06 * damp,
-      scaleY: 0.8 + breath * 5.8 * damp,
+      scaleX: 1 + breath * 0.05 * damp,
+      scaleY: 2.1 + breath * 6.4 * damp,
       scaleZ: 1,
-      bob: (breath - 0.5) * 0.4 * damp,
+      bob: (breath - 0.5) * 0.35 * damp,
     };
   }
   if (mood === "wow") {
     const cycle = time % 2.15;
     let pop = 1;
-    const amp = 1.25 * damp;
+    const amp = 0.55 * damp;
     if (cycle < 0.14) pop = 1 + (cycle / 0.14) * amp;
     else if (cycle < 0.52) pop = 1 + amp;
     else if (cycle < 0.92) {
       const u = (cycle - 0.52) / 0.4;
       pop = 1 + (1 - u * u * (3 - 2 * u)) * amp;
     }
-    return { scaleX: pop, scaleY: pop, scaleZ: 1 + (pop - 1) * 0.35, bob: Math.max(pop - 1, 0) * 1.15 };
+    return { scaleX: pop, scaleY: pop, scaleZ: 1 + (pop - 1) * 0.25, bob: Math.max(pop - 1, 0) * 0.45 };
   }
   return still;
 }
@@ -154,13 +154,15 @@ export function eyeTilt(shape: EyeMoodShape, index: number) {
 
 /**
  * Seated center, before look-around and mood bob.
+ * `depth` is how far this eye extends forward (its Z half-extent).
+ * `protrusion` is a fraction of that depth, and `lift` is world units on Y.
  * Depth moves straight along the form's front axis. Sliding along a tilted
- * surface normal pushes the eyes off the cheek, which reads as a float from the side.
+ * surface normal pushes the eyes off the cheek.
  */
-export function seatEyePosition(anchor: EyeAnchor, radius: number, protrusion: number, lift: number) {
+export function seatEyePosition(anchor: EyeAnchor, depth: number, protrusion: number, lift: number) {
   const position = anchor.point.clone();
-  position.z += radius * protrusion;
-  position.y += radius * lift;
+  position.z += depth * protrusion;
+  position.y += lift;
   return position;
 }
 
