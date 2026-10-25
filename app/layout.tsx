@@ -12,7 +12,7 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "SquishForm",
-  description: "Генератор мягких 3D-аватаров для ботов и агентов.",
+  description: "Генератор мягких аватаров для ботов и агентов: 3D и плоский 2.5D.",
 };
 
 export const viewport: Viewport = {

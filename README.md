@@ -1,6 +1,13 @@
 # SquishForm
 
-Soft 3D avatars for bot and agent projects. The playground is free. A paid project pack may come later. There is no paywall and no pricing in the app.
+Soft avatars for bot and agent projects. The playground is free. A paid project pack may come later. There is no paywall and no pricing in the app.
+
+## Modes
+
+Switch **3D | Flat** at the top of the panel. The last choice is stored in this browser. First visit opens 3D. Each mode keeps its own settings.
+
+- **3D** — the React Three Fiber avatar (GLB, PNG, project pack).
+- **Flat** — soft 2.5D stickers as SVG: a tilted silhouette, drop shadow, and dot or capsule eyes. Flat exports PNG and SVG. GLB and the project pack stay in 3D.
 
 ## Run
 
@@ -12,6 +19,8 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 ## What you can change
+
+### 3D
 
 - **Silhouette** — drop, bean, squircle, pear, pill, bun, mochi, bud. The buttons are colored previews with eyes. The circle above Random is a still frame of the current avatar.
 - **Surface** — smooth by default. Polygons is an optional flat look.
@@ -35,6 +44,15 @@ Two paths, both free:
 - **Files** — `squish-{silhouette}-{timestamp}.glb` (body and eyes, rest pose) and a transparent PNG of the current frame.
 - **Project pack** — a zip with `avatar.glb`, a drop-in `squish-avatar.tsx` for React Three Fiber, and a short README on how to place it in a Canvas.
 
+### Flat
+
+- **Silhouette** — cloud, blob, rounded square, star, flower, drop, capsule, triangle, pentagon, heart, hex, cottage. The grid and the round preview use the current color.
+- **Eyes** — dots or vertical capsules. Moods: calm (a blink), joy, sleep, surprise. Size is a slider.
+- **Color** — solid, or a two-stop gradient.
+- **Fill** — flat, soft gloss, matte, or jelly. All of it is SVG, not a mesh.
+- **Motion** — none, breathe, or float. Speed applies to those and to the blink.
+- **Random** — silhouette, color, fill, and eyes. It does not change motion.
+
 ## Stack
 
-Next.js App Router, TypeScript, Tailwind CSS, React Three Fiber, drei, three.js.
+Next.js App Router, TypeScript, Tailwind CSS, React Three Fiber, drei, three.js. Flat mode is SVG and does not use the 3D renderer.
