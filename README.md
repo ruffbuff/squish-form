@@ -56,3 +56,19 @@ Two paths, both free:
 ## Stack
 
 Next.js App Router, TypeScript, Tailwind CSS, React Three Fiber, drei, three.js. Flat mode is SVG and does not use the 3D renderer.
+
+## Versioning and tests
+
+The working tree uses version `0.0.0` (unreleased). Release tags use semver, starting at `v0.1.0`. Every commit subject starts with the version it belongs to, for example:
+
+```text
+v0.0.0: symmetric eye anchors and geometry tests
+v0.1.0: animated Flat export
+```
+
+When a release is cut, bump the version in `package.json` and the README at the same time as the tag.
+
+```bash
+npm test         # unit tests (silhouettes, eye anchors, eye fit)
+npm run build    # production build
+```
