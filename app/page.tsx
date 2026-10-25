@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useRef, useState } from "react";
 import type { PlaygroundApi } from "@/components/AvatarCanvas";
 import { ControlsPanel } from "@/components/ControlsPanel";
+import { randomizeAvatar } from "@/lib/random";
 import type { AvatarParams } from "@/lib/types";
 
 const AvatarCanvas = dynamic(() => import("@/components/AvatarCanvas"), {
@@ -16,9 +17,14 @@ const INITIAL: AvatarParams = {
   material: "jelly",
   idle: "both",
   eyes: "dots",
-  light: 0.72,
+  eyeSize: 1,
+  lightOn: true,
+  lightX: 0.72,
+  lightY: 0.62,
+  lightIntensity: 0.7,
   quality: 1,
   follow: false,
+  tap: true,
 };
 
 export default function Page() {
@@ -35,6 +41,10 @@ export default function Page() {
 
   const onChange = useCallback((patch: Partial<AvatarParams>) => {
     setParams((current) => ({ ...current, ...patch }));
+  }, []);
+
+  const onRandom = useCallback(() => {
+    setParams((current) => randomizeAvatar(current));
   }, []);
 
   const onDownloadGlb = useCallback(async () => {
@@ -62,6 +72,20 @@ export default function Page() {
     }
   }, []);
 
+  const onDownloadPack = useCallback(async () => {
+    const api = apiRef.current;
+    if (!api) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await api.downloadPack();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось сохранить пакет");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   return (
     <main className="flex h-dvh flex-col bg-[var(--bg)] md:flex-row">
       <section className="relative h-[58dvh] shrink-0 md:h-auto md:min-h-0 md:flex-1">
@@ -70,15 +94,17 @@ export default function Page() {
         </div>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_42%,rgba(0,0,0,0.38)_100%)]" />
       </section>
-      <aside className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[360px] md:flex-none md:border-t-0 md:border-l">
+      <aside className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[380px] md:flex-none md:border-t-0 md:border-l">
         <ControlsPanel
           params={params}
           ready={ready}
           busy={busy}
           error={error}
           onChange={onChange}
+          onRandom={onRandom}
           onDownloadGlb={onDownloadGlb}
           onDownloadPng={onDownloadPng}
+          onDownloadPack={onDownloadPack}
         />
       </aside>
     </main>

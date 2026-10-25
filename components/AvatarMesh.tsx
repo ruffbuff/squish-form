@@ -3,12 +3,18 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
-import type { BufferGeometry, Group, Material, Mesh } from "three";
+import type { BufferGeometry, Material, Mesh } from "three";
 import { createAvatarMaterial } from "@/lib/materials";
 import { createSilhouetteGeometry } from "@/lib/silhouettes";
-import { qualityTier, type EyeStyle, type IdleId, type MaterialId, type SilhouetteId } from "@/lib/types";
+import {
+  qualityTier,
+  type EyeStyle,
+  type IdleId,
+  type MaterialId,
+  type SilhouetteId,
+} from "@/lib/types";
 
-const REST_YAW = 0.42;
+const REST_YAW = 0.38;
 const REST_Y = 0.02;
 
 type AvatarMeshProps = {
@@ -17,19 +23,30 @@ type AvatarMeshProps = {
   material: MaterialId;
   idle: IdleId;
   eyes: EyeStyle;
+  eyeSize: number;
   quality: number;
   follow: boolean;
+  tap: boolean;
 };
 
-type EyeSpot = {
-  points: [THREE.Vector3, THREE.Vector3];
-  scale: number;
+type EyeAnchor = {
+  point: THREE.Vector3;
+  normal: THREE.Vector3;
 };
 
-export function AvatarMesh({ silhouette, color, material, idle, eyes, quality, follow }: AvatarMeshProps) {
-  const rig = useRef<Group>(null);
-  const eyeGroups = useRef<(Group | null)[]>([null, null]);
-  const pupils = useRef<(Mesh | null)[]>([null, null]);
+export function AvatarMesh({
+  silhouette,
+  color,
+  material,
+  idle,
+  eyes,
+  eyeSize,
+  quality,
+  follow,
+  tap,
+}: AvatarMeshProps) {
+  const rig = useRef<THREE.Group>(null);
+  const eyeMeshes = useRef<(Mesh | null)[]>([null, null]);
   const look = useRef(new THREE.Vector2());
   const hovering = useRef(false);
   const reaction = useRef(0);
@@ -39,28 +56,15 @@ export function AvatarMesh({ silhouette, color, material, idle, eyes, quality, f
   const tier = qualityTier(quality);
   const geometry = useMemo(() => createSilhouetteGeometry(silhouette, tier), [silhouette, tier]);
   const surface = useMemo(() => createAvatarMaterial(material, color), [material, color]);
-  const spots = useMemo(() => placeEyes(geometry), [geometry]);
-  const eyeGeometry = useMemo(() => new THREE.SphereGeometry(1, 28, 20), []);
-  const pupilGeometry = useMemo(() => new THREE.SphereGeometry(0.42, 18, 14), []);
-  const sclera = useMemo(
+  const anchors = useMemo(() => placeEyes(geometry), [geometry]);
+  const eyeGeometry = useMemo(() => new THREE.SphereGeometry(1, 18, 14), []);
+  const eyeMaterial = useMemo(
     () =>
-      new THREE.MeshPhysicalMaterial({
-        color: "#f7f4ef",
-        roughness: 0.42,
-        clearcoat: 0.35,
-        clearcoatRoughness: 0.2,
-        name: "squish-sclera",
-      }),
-    [],
-  );
-  const pupilMaterial = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        color: "#1a1412",
-        roughness: 0.22,
-        clearcoat: 0.45,
-        clearcoatRoughness: 0.12,
-        name: "squish-pupil",
+      new THREE.MeshStandardMaterial({
+        color: "#100e0c",
+        roughness: 0.4,
+        metalness: 0,
+        name: "squish-eye",
       }),
     [],
   );
@@ -101,18 +105,31 @@ export function AvatarMesh({ silhouette, color, material, idle, eyes, quality, f
     };
   }, [gl]);
 
+  const radius = anchors.radius * eyeSize;
+  const oval = eyes === "ovals";
+  const restScale: [number, number, number] = [
+    radius * (oval ? 1.55 : 0.82),
+    radius * (oval ? 0.72 : 0.82),
+    radius * (oval ? 0.9 : 0.82),
+  ];
+  const eyePositions = anchors.eyes.map((anchor) =>
+    anchor.point.clone().addScaledVector(anchor.normal, radius * 1.05),
+  );
+
   useFrame((state, delta) => {
     const current = rig.current;
     if (!current) return;
 
     const time = state.clock.elapsedTime;
-    const wanderX = Math.sin(time * 0.7) * 0.9;
-    const wanderY = Math.sin(time * 0.46 + 0.8) * 0.42;
-    let targetX = wanderX;
-    let targetY = wanderY;
+    const wander = idle !== "none";
+    let targetX = 0;
+    let targetY = 0;
     if (follow && hovering.current) {
       targetX = THREE.MathUtils.clamp(state.pointer.x * 1.2, -1, 1);
       targetY = THREE.MathUtils.clamp(state.pointer.y * 0.95, -1, 1);
+    } else if (wander) {
+      targetX = Math.sin(time * 0.7) * 0.9;
+      targetY = Math.sin(time * 0.46 + 0.8) * 0.42;
     }
     look.current.x = THREE.MathUtils.damp(look.current.x, targetX, 8, delta);
     look.current.y = THREE.MathUtils.damp(look.current.y, targetY, 8, delta);
@@ -120,13 +137,19 @@ export function AvatarMesh({ silhouette, color, material, idle, eyes, quality, f
     const open = blinkOpen(blink.current, time, delta);
     const breathe = idle === "breathe" || idle === "both";
     const sway = idle === "sway" || idle === "both";
-    const pulse = breathe ? Math.sin(time * 1.65) : 0;
-    let width = 1 - (breathe ? pulse * 0.038 : 0);
-    let height = 1 + (breathe ? pulse * 0.055 : 0);
-    let yaw = sway ? Math.sin(time * 0.75) * 0.28 : 0;
-    let roll = sway ? Math.sin(time * 0.52) * 0.07 : 0;
-    let pitch = sway ? Math.cos(time * 0.46) * 0.06 : 0;
-    let bob = sway ? Math.sin(time * 1.15) * 0.04 : 0;
+    const pulse = breathe ? Math.sin(time * 2.15) : 0;
+    let width = 1 - (breathe ? pulse * 0.075 : 0);
+    let height = 1 + (breathe ? pulse * 0.12 : 0);
+    let yaw = 0;
+    let roll = 0;
+    let pitch = 0;
+    let bob = 0;
+    if (sway) {
+      yaw += Math.sin(time * 0.85) * 0.58;
+      roll += Math.sin(time * 0.62) * 0.24;
+      pitch += Math.cos(time * 0.54) * 0.18;
+      bob += Math.sin(time * 0.85) * 0.11;
+    }
 
     yaw += look.current.x * 0.28;
     roll += -look.current.x * 0.16;
@@ -150,32 +173,25 @@ export function AvatarMesh({ silhouette, color, material, idle, eyes, quality, f
     current.rotation.set(pitch, REST_YAW + yaw, roll);
     current.position.y = REST_Y + bob;
 
-    const shiftX = look.current.x * 0.36;
-    const shiftY = look.current.y * 0.28;
-    for (const pupil of pupils.current) {
-      if (!pupil) continue;
-      pupil.position.x = shiftX;
-      pupil.position.y = shiftY;
-    }
-    for (const eye of eyeGroups.current) {
-      if (!eye) continue;
+    eyeMeshes.current.forEach((eye) => {
+      if (!eye) return;
       const rest = eye.userData.restScale as [number, number, number] | undefined;
-      if (!rest) continue;
+      const origin = eye.userData.restPosition as [number, number, number] | undefined;
+      if (!rest || !origin) return;
       eye.scale.set(rest[0], rest[1] * open, rest[2]);
-    }
+      eye.position.set(
+        origin[0] + look.current.x * radius * 1.15,
+        origin[1] + look.current.y * radius * 0.9,
+        origin[2],
+      );
+    });
   });
 
   const poke = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
+    if (!tap) return;
     reaction.current = 0.001;
   };
-
-  const oval = eyes === "ovals";
-  const restScale: [number, number, number] = [
-    spots.scale * (oval ? 1.34 : 1),
-    spots.scale * (oval ? 0.68 : 1),
-    spots.scale * (oval ? 0.9 : 1),
-  ];
 
   return (
     <group ref={rig} name="squish-avatar">
@@ -187,34 +203,29 @@ export function AvatarMesh({ silhouette, color, material, idle, eyes, quality, f
         receiveShadow={false}
         onClick={poke}
         onPointerOver={() => {
-          document.body.style.cursor = "pointer";
+          document.body.style.cursor = tap ? "pointer" : "";
         }}
         onPointerOut={() => {
           document.body.style.cursor = "";
         }}
       />
-      {spots.points.map((point, index) => (
-        <group
+      {eyePositions.map((position, index) => (
+        <mesh
           key={index}
           name="squish-eye"
-          position={point}
-          userData={{ restScale }}
+          geometry={eyeGeometry}
+          material={eyeMaterial}
+          position={position}
+          scale={restScale}
+          userData={{
+            restScale,
+            restPosition: [position.x, position.y, position.z],
+          }}
           ref={(node) => {
-            eyeGroups.current[index] = node;
+            eyeMeshes.current[index] = node;
           }}
           onClick={poke}
-        >
-          <mesh geometry={eyeGeometry} material={sclera} />
-          <mesh
-            name="squish-pupil"
-            geometry={pupilGeometry}
-            material={pupilMaterial}
-            position={[0, 0, 0.62]}
-            ref={(node) => {
-              pupils.current[index] = node;
-            }}
-          />
-        </group>
+        />
       ))}
     </group>
   );
@@ -233,25 +244,30 @@ function blinkOpen(state: { next: number; time: number }, time: number, delta: n
   return 1 - Math.sin(Math.min(unit, 1) * Math.PI) * 0.92;
 }
 
-function placeEyes(geometry: THREE.BufferGeometry): EyeSpot {
+function placeEyes(geometry: THREE.BufferGeometry): { eyes: [EyeAnchor, EyeAnchor]; radius: number } {
   geometry.computeBoundingBox();
+  geometry.computeVertexNormals();
   const box = geometry.boundingBox ?? new THREE.Box3(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
-  const y = center.y + size.y * 0.12;
-  const spread = THREE.MathUtils.clamp(size.x * 0.18, 0.16, 0.42);
-  const scale = THREE.MathUtils.clamp(Math.min(size.y, size.z) * 0.11, 0.075, 0.14);
+  const spread = THREE.MathUtils.clamp(size.x * 0.16, 0.12, 0.32);
+  const y = center.y + size.y * 0.05;
+  const radius = THREE.MathUtils.clamp(Math.min(size.x, size.y, size.z) * 0.055, 0.038, 0.062);
   const probe = new THREE.Mesh(geometry);
   const raycaster = new THREE.Raycaster();
 
-  const hitAt = (x: number) => {
-    raycaster.set(new THREE.Vector3(x, y, box.max.z + 2), new THREE.Vector3(0, 0, -1));
-    const hit = raycaster.intersectObject(probe)[0];
-    if (!hit) return new THREE.Vector3(x, y, box.max.z + scale * 0.25);
-    const point = hit.point.clone();
-    point.addScaledVector(hit.face?.normal ?? new THREE.Vector3(0, 0, 1), scale * 0.45);
-    return point;
+  const seek = (x: number): EyeAnchor => {
+    const heights = [y, y + size.y * 0.1, y - size.y * 0.12, center.y];
+    for (const yTry of heights) {
+      raycaster.set(new THREE.Vector3(x, yTry, box.max.z + 2), new THREE.Vector3(0, 0, -1));
+      for (const hit of raycaster.intersectObject(probe)) {
+        const normal = (hit.normal ?? hit.face?.normal ?? new THREE.Vector3(0, 0, 1)).clone().normalize();
+        if (normal.z < 0.4) continue;
+        return { point: hit.point.clone(), normal };
+      }
+    }
+    return { point: new THREE.Vector3(x, y, box.max.z), normal: new THREE.Vector3(0, 0, 1) };
   };
 
-  return { points: [hitAt(-spread), hitAt(spread)], scale };
+  return { eyes: [seek(-spread), seek(spread)], radius };
 }

@@ -26,7 +26,7 @@ export function SoftShadow() {
   if (!texture) return null;
 
   return (
-    <mesh name="glina-shadow" rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.12, 0]}>
+    <mesh name="squish-shadow" rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.12, 0]}>
       <planeGeometry args={[3.4, 3.4]} />
       <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
     </mesh>

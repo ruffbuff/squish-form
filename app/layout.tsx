@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Глина",
-  description: "Playground мягких 3D-форм: силуэты, глаза, материалы и экспорт.",
+  title: "SquishForm",
+  description: "Генератор мягких 3D-аватаров для ботов и агентов.",
 };
 
 export const viewport: Viewport = {

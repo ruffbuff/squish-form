@@ -10,19 +10,19 @@ export const SILHOUETTES: { id: SilhouetteId; label: string }[] = [
   { id: "bun", label: "Пышка" },
 ];
 
-const SEGMENTS: Record<QualityTier, [number, number]> = {
-  0: [22, 16],
-  1: [48, 36],
-  2: [96, 72],
+/** Icosphere detail. No UV-sphere poles, so gloss and jelly do not pick up a meridian seam. */
+const DETAIL: Record<QualityTier, number> = {
+  0: 1,
+  1: 3,
+  2: 4,
 };
 
 /**
- * Closed sphere topology, displaced into a soft silhouette.
+ * Closed icosphere, displaced into a soft silhouette.
  * Vertices are then recentered so every form frames the same way.
  */
 export function createSilhouetteGeometry(id: SilhouetteId, tier: QualityTier = 2): THREE.BufferGeometry {
-  const [width, height] = SEGMENTS[tier];
-  const geometry = new THREE.SphereGeometry(1, width, height);
+  const geometry = new THREE.IcosahedronGeometry(1, DETAIL[tier]);
   const position = geometry.attributes.position;
   const vertex = new THREE.Vector3();
 
@@ -82,18 +82,19 @@ function shapeBean(vertex: THREE.Vector3): THREE.Vector3 {
   return new THREE.Vector3(x, y, z);
 }
 
-/** Pear: heavy lower belly, a narrow neck, and a small top. */
+/**
+ * Pear: round belly low, a gentle neck, and a dome tip.
+ * Radius follows the hemisphere profile so the top closes instead of flattening into a cap.
+ */
 function shapePear(vertex: THREE.Vector3): THREE.Vector3 {
   const dir = vertex.clone().normalize();
   const y = dir.y;
-  const t = (y + 1) / 2;
-  const belly = 0.42 + 0.62 * Math.sin(Math.PI * Math.pow(Math.max(0, 1 - t), 0.72));
-  const neck = THREE.MathUtils.smoothstep(y, 0.05, 0.78);
-  let radius = belly * (1 - neck * 0.55);
-  const crown = Math.exp(-((y - 0.86) ** 2) / 0.012);
-  radius = Math.max(radius, crown * 0.34);
+  const round = Math.sqrt(Math.max(0, 1 - y * y));
+  const belly = 1 + 0.34 * THREE.MathUtils.smoothstep(y, 0.15, -0.8);
+  const neck = 1 - 0.4 * THREE.MathUtils.smoothstep(y, -0.02, 0.62);
+  const radius = round * belly * neck;
   const horizontal = Math.hypot(dir.x, dir.z) || 1;
-  return new THREE.Vector3((dir.x / horizontal) * radius, y * 1.28, (dir.z / horizontal) * radius);
+  return new THREE.Vector3((dir.x / horizontal) * radius, y * 1.2, (dir.z / horizontal) * radius);
 }
 
 /** Capsule lying on its side: round ends, straight soft middle. */
@@ -106,18 +107,18 @@ function shapePill(vertex: THREE.Vector3): THREE.Vector3 {
   return new THREE.Vector3(x, dir.y * thickness, dir.z * thickness);
 }
 
-/** Plump bun with a soft dimple on top. */
+/** Plump bun. The top dip stays shallow so it never reads as a hole. */
 function shapeBun(vertex: THREE.Vector3): THREE.Vector3 {
   const dir = vertex.clone().normalize();
   const radial = Math.hypot(dir.x, dir.z);
-  let y = dir.y * 0.74;
-  if (dir.y > 0) {
-    const dent = Math.exp(-(radial * radial) / 0.16) * 0.28 * THREE.MathUtils.smoothstep(dir.y, 0.05, 0.7);
+  let y = dir.y * 0.7;
+  if (dir.y > 0.15) {
+    const dent = Math.exp(-(radial * radial) / 0.28) * 0.07 * THREE.MathUtils.smoothstep(dir.y, 0.2, 0.7);
     y -= dent;
-  } else {
-    y *= 0.82;
+  } else if (dir.y < 0) {
+    y *= 0.9;
   }
-  return new THREE.Vector3(dir.x * 1.08, y, dir.z * 1.08);
+  return new THREE.Vector3(dir.x * 1.14, y, dir.z * 1.14);
 }
 
 /** Soft square: unit direction pulled onto an L4 superellipsoid, then pillowed. */
