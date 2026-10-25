@@ -29,8 +29,6 @@ export type FlatLayers = {
 };
 
 export type FlatRenderOptions = {
-  /** Silhouette grid thumbs use a neutral palette so shape reads without the live color. */
-  neutralThumb?: boolean;
   /** Playground export framing ignores zoom; stage honors it. */
   ignoreZoom?: boolean;
 };
@@ -53,16 +51,7 @@ export function flatLayers(params: FlatParams, prefix: string): FlatLayers {
   };
 }
 
-function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, options?: FlatRenderOptions) {
-  const paintParams = options?.neutralThumb
-    ? {
-        ...params,
-        color: "#c9bbae",
-        colorB: "#a19386",
-        colorMode: "solid" as const,
-        fill: "matte" as const,
-      }
-    : params;
+function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _options?: FlatRenderOptions) {
   const shape = flatSilhouette(params.silhouette);
   const style = FRAMES[frame];
   const safe = prefix.replace(/[^a-zA-Z0-9_-]/g, "") || "flat";
@@ -79,7 +68,7 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, optio
   const fillId = `${safe}-fill`;
   const clipId = `${safe}-clip`;
   const blurId = `${safe}-blur`;
-  const paint = fillAttrs(paintParams, fillId);
+  const paint = fillAttrs(params, fillId);
 
   const defs = [
     `<filter id="${blurId}" filterUnits="userSpaceOnUse" x="${FLAT_VIEW.x}" y="${FLAT_VIEW.y}" width="${FLAT_VIEW.w}" height="${FLAT_VIEW.h}">`,
