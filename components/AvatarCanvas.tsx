@@ -67,6 +67,7 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
         speed={props.speed}
         smoothness={props.smoothness}
         eyes={props.eyes}
+        mood={props.mood}
         eyeSize={props.eyeSize}
         follow={props.follow}
         tap={props.tap}

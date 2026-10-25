@@ -1,8 +1,9 @@
 import { MATERIALS } from "./materials";
 import { SILHOUETTES } from "./silhouettes";
-import type { AvatarParams, ColorMode, EyeStyle } from "./types";
+import type { AvatarParams, ColorMode, EyeMood, EyeStyle } from "./types";
 
 const EYES: EyeStyle[] = ["dots", "ovals"];
+const MOODS: EyeMood[] = ["calm", "joy", "sleep", "wow"];
 const MODES: ColorMode[] = ["solid", "gradient"];
 const PRESETS = ["#40ea34", "#f08a78", "#7ec8ff", "#ffd166", "#e879f9", "#fb7185", "#f4efe8", "#38bdf8", "#fb923c", "#a3e635", "#ec0dff"];
 
@@ -21,6 +22,7 @@ export function randomizeAvatar(current: AvatarParams): AvatarParams {
     gradientSoft: Math.random() < 0.75,
     material: pick(MATERIALS).id,
     eyes: pick(EYES),
+    mood: pick(MOODS),
     eyeSize: 0.75 + Math.random() * 0.7,
   };
 }

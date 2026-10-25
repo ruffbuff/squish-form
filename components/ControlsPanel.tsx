@@ -1,15 +1,11 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState, type ReactNode } from "react";
+import { AvatarPreview } from "@/components/AvatarPreview";
 import { ColorPicker } from "@/components/ColorPicker";
 import { SilhouettePicker } from "@/components/SilhouettePicker";
 import { MATERIALS } from "@/lib/materials";
-import { qualityTier, type AvatarParams, type BackdropId, type ColorMode, type EyeStyle, type IdleId, type SurfaceMode } from "@/lib/types";
-
-const AvatarPreview = dynamic(() => import("@/components/AvatarPreview").then((mod) => mod.AvatarPreview), {
-  ssr: false,
-});
+import { qualityTier, type AvatarParams, type BackdropId, type ColorMode, type EyeMood, type EyeStyle, type IdleId, type SurfaceMode } from "@/lib/types";
 
 const IDLES: { id: IdleId; label: string }[] = [
   { id: "none", label: "Без движения" },
@@ -17,6 +13,14 @@ const IDLES: { id: IdleId; label: string }[] = [
   { id: "sway", label: "Покачивание" },
   { id: "bounce", label: "Прыжок" },
   { id: "spin", label: "Оборот" },
+  { id: "float", label: "Левитация" },
+];
+
+const MOODS: { id: EyeMood; label: string }[] = [
+  { id: "calm", label: "Обычные" },
+  { id: "joy", label: "Радость" },
+  { id: "sleep", label: "Сон" },
+  { id: "wow", label: "Удивление" },
 ];
 
 const SURFACES: { id: SurfaceMode; label: string }[] = [
@@ -93,6 +97,8 @@ export function ControlsPanel({
           display={params.eyeSize < 0.85 ? "Мелкие" : params.eyeSize > 1.25 ? "Крупнее" : "Средние"}
           onChange={(unit) => onChange({ eyeSize: 0.55 + unit * 1.15 })}
         />
+        <p className="pt-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Настроение</p>
+        <Segment options={MOODS} value={params.mood} onChange={(mood) => onChange({ mood })} />
       </Field>
 
       <Field label="Цвет">

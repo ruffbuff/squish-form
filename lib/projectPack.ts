@@ -14,7 +14,7 @@ import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import type { Group, Mesh } from "three";
 
-export type SquishIdle = "none" | "breathe" | "sway" | "bounce" | "spin";
+export type SquishIdle = "none" | "breathe" | "sway" | "bounce" | "spin" | "float";
 
 type SquishAvatarProps = {
   /** Put avatar.glb in public/ and pass "/avatar.glb". */
@@ -77,8 +77,10 @@ export function SquishAvatar({
     if (idle === "spin") {
       const unit = (Math.sin(time * 0.55 * pace) + 1) / 2;
       const soft = unit * unit * (3 - 2 * unit);
-      const sharp = unit < 0.5 ? 0 : 1;
-      yaw += (soft * smoothness + (sharp * 0.7 + unit * 0.3) * (1 - smoothness)) * Math.PI * 2;
+      yaw += (unit + (soft - unit) * smoothness) * Math.PI * 2;
+    }
+    if (idle === "float") {
+      bob += Math.sin(time * 1.15 * pace) * 0.28;
     }
 
     let lookX = 0;
@@ -86,7 +88,7 @@ export function SquishAvatar({
     if (follow) {
       lookX = Math.max(-1, Math.min(1, state.pointer.x * 1.2));
       lookY = Math.max(-1, Math.min(1, state.pointer.y * 0.95));
-    } else if (idle !== "none") {
+    } else if (idle !== "none" && idle !== "float") {
       lookX = Math.sin(time * 0.7) * 0.9;
       lookY = Math.sin(time * 0.46) * 0.42;
     }
@@ -185,7 +187,7 @@ import { SquishAvatar } from "./squish-avatar";
 
 ## Props
 
-- \`idle\` — \`none\`, \`breathe\`, \`sway\`, \`bounce\` или \`spin\`.
+- \`idle\` — \`none\`, \`breathe\`, \`sway\`, \`bounce\`, \`spin\` или \`float\`. Spin turns all the way around and back without a jump. Float moves only up and down.
 - \`speed\` и \`smoothness\` — скорость и плавность, от 0 до 1.
 - \`follow\` — глаза и корпус следят за курсором.
 - \`tap\` — клик по форме коротко сжимает её.

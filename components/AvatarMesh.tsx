@@ -4,12 +4,14 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { BufferGeometry, Material, Mesh } from "three";
+import { eyeMoodShape, placeEyes } from "@/lib/eyes";
 import { paintGradient } from "@/lib/gradient";
 import { createAvatarMaterial } from "@/lib/materials";
 import { idlePose } from "@/lib/motion";
 import { createSilhouetteGeometry } from "@/lib/silhouettes";
 import type {
   ColorMode,
+  EyeMood,
   EyeStyle,
   IdleId,
   MaterialId,
@@ -34,15 +36,11 @@ type AvatarMeshProps = {
   speed: number;
   smoothness: number;
   eyes: EyeStyle;
+  mood: EyeMood;
   eyeSize: number;
   follow: boolean;
   tap: boolean;
   frozen?: boolean;
-};
-
-type EyeAnchor = {
-  point: THREE.Vector3;
-  normal: THREE.Vector3;
 };
 
 export function AvatarMesh({
@@ -59,6 +57,7 @@ export function AvatarMesh({
   speed,
   smoothness,
   eyes,
+  mood,
   eyeSize,
   follow,
   tap,
@@ -137,12 +136,13 @@ export function AvatarMesh({
   }, [gl]);
 
   const radius = anchors.radius * eyeSize;
-  const oval = eyes === "ovals";
+  const moodShape = eyeMoodShape(mood, eyes === "ovals");
   const restScale: [number, number, number] = [
-    radius * (oval ? 1.55 : 0.82),
-    radius * (oval ? 0.72 : 0.82),
-    radius * (oval ? 0.9 : 0.82),
+    radius * moodShape.sx,
+    radius * moodShape.sy,
+    radius * moodShape.sz,
   ];
+  const eyeLift = radius * moodShape.lift;
   const eyePositions = anchors.eyes.map((anchor) =>
     anchor.point.clone().addScaledVector(anchor.normal, radius * 1.05),
   );
@@ -155,7 +155,7 @@ export function AvatarMesh({
 
     const time = state.clock.elapsedTime;
     const pace = 0.35 + speed * 1.75;
-    const wander = idle !== "none";
+    const wander = idle !== "none" && idle !== "float";
     let targetX = 0;
     let targetY = 0;
     if (follow && hovering.current) {
@@ -168,7 +168,7 @@ export function AvatarMesh({
     look.current.x = THREE.MathUtils.damp(look.current.x, targetX, 8, delta);
     look.current.y = THREE.MathUtils.damp(look.current.y, targetY, 8, delta);
 
-    const open = blinkOpen(blink.current, time, delta);
+    const open = mood === "calm" ? blinkOpen(blink.current, time, delta) : 1;
     const pose = idlePose(idle, time, speed, smoothness);
     let { width, height, yaw, roll, pitch, bob } = pose;
 
@@ -199,10 +199,10 @@ export function AvatarMesh({
       const rest = eye.userData.restScale as [number, number, number] | undefined;
       const origin = eye.userData.restPosition as [number, number, number] | undefined;
       if (!rest || !origin) return;
-      eye.scale.set(rest[0], rest[1] * open, rest[2]);
+      eye.scale.set(rest[0], Math.max(rest[1] * open, radius * 0.08), rest[2]);
       eye.position.set(
         origin[0] + look.current.x * radius * 1.15,
-        origin[1] + look.current.y * radius * 0.9,
+        origin[1] + eyeLift + look.current.y * radius * 0.9,
         origin[2],
       );
     });
@@ -265,30 +265,3 @@ function blinkOpen(state: { next: number; time: number }, time: number, delta: n
   return 1 - Math.sin(Math.min(unit, 1) * Math.PI) * 0.92;
 }
 
-function placeEyes(geometry: THREE.BufferGeometry): { eyes: [EyeAnchor, EyeAnchor]; radius: number } {
-  geometry.computeBoundingBox();
-  geometry.computeVertexNormals();
-  const box = geometry.boundingBox ?? new THREE.Box3(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
-  const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-  const spread = THREE.MathUtils.clamp(size.x * 0.16, 0.12, 0.32);
-  const y = center.y + size.y * 0.05;
-  const radius = THREE.MathUtils.clamp(Math.min(size.x, size.y, size.z) * 0.055, 0.038, 0.062);
-  const probe = new THREE.Mesh(geometry);
-  const raycaster = new THREE.Raycaster();
-
-  const seek = (x: number): EyeAnchor => {
-    const heights = [y, y + size.y * 0.1, y - size.y * 0.12, center.y];
-    for (const yTry of heights) {
-      raycaster.set(new THREE.Vector3(x, yTry, box.max.z + 2), new THREE.Vector3(0, 0, -1));
-      for (const hit of raycaster.intersectObject(probe)) {
-        const normal = (hit.normal ?? hit.face?.normal ?? new THREE.Vector3(0, 0, 1)).clone().normalize();
-        if (normal.z < 0.4) continue;
-        return { point: hit.point.clone(), normal };
-      }
-    }
-    return { point: new THREE.Vector3(x, y, box.max.z), normal: new THREE.Vector3(0, 0, 1) };
-  };
-
-  return { eyes: [seek(-spread), seek(spread)], radius };
-}

@@ -37,9 +37,11 @@ export function idlePose(idle: IdleId, time: number, speed: number, smoothness: 
   if (idle === "spin") {
     const unit = (Math.sin(time * rate(speed, 0.55)) + 1) / 2;
     const soft = unit * unit * (3 - 2 * unit);
-    const sharp = unit < 0.5 ? 0 : 1;
-    const turn = soft * smoothness + (sharp * 0.7 + unit * 0.3) * (1 - smoothness);
+    const turn = unit + (soft - unit) * smoothness;
     pose.yaw = turn * Math.PI * 2;
+  }
+  if (idle === "float") {
+    pose.bob = wave(time * rate(speed, 1.15), smoothness) * 0.28;
   }
   return pose;
 }

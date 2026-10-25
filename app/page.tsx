@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlaygroundApi } from "@/components/AvatarCanvas";
 import { ControlsPanel } from "@/components/ControlsPanel";
 import { randomizeAvatar } from "@/lib/random";
@@ -25,6 +25,7 @@ const INITIAL: AvatarParams = {
   speed: 0.55,
   smoothness: 0.7,
   eyes: "dots",
+  mood: "calm",
   eyeSize: 1,
   backdrop: "studio",
   lightOn: true,
@@ -42,6 +43,7 @@ export default function Page() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [home, setHome] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
   const apiRef = useRef<PlaygroundApi | null>(null);
 
   const onReady = useCallback((api: PlaygroundApi | null) => {
@@ -57,6 +59,12 @@ export default function Page() {
     setParams((current) => randomizeAvatar(current));
   }, []);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 1600);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
   const onDownloadGlb = useCallback(async () => {
     const api = apiRef.current;
     if (!api) return;
@@ -64,6 +72,7 @@ export default function Page() {
     setBusy(true);
     try {
       await api.downloadGlb();
+      setNotice("Готово");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не удалось сохранить GLB");
     } finally {
@@ -77,6 +86,7 @@ export default function Page() {
     setError(null);
     try {
       api.downloadPng();
+      setNotice("Готово");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не удалось сохранить PNG");
     }
@@ -89,6 +99,7 @@ export default function Page() {
     setBusy(true);
     try {
       await api.downloadPack();
+      setNotice("Готово");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не удалось сохранить пакет");
     } finally {
@@ -112,6 +123,11 @@ export default function Page() {
         >
           <HomeIcon />
         </button>
+        {notice ? (
+          <p className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-full bg-[#f4efe8] px-3 py-1.5 text-sm font-medium text-[#1a1613]">
+            {notice}
+          </p>
+        ) : null}
       </section>
       <aside className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[380px] md:flex-none md:border-t-0 md:border-l">
         <ControlsPanel

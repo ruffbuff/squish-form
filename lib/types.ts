@@ -1,10 +1,12 @@
-export type SilhouetteId = "blob" | "bean" | "squircle" | "pear" | "pill" | "bun";
+export type SilhouetteId = "blob" | "bean" | "squircle" | "pear" | "pill" | "bun" | "mochi" | "bud";
 
 export type MaterialId = "matte" | "jelly" | "clay" | "gloss" | "pearl";
 
-export type IdleId = "none" | "breathe" | "sway" | "bounce" | "spin";
+export type IdleId = "none" | "breathe" | "sway" | "bounce" | "spin" | "float";
 
 export type EyeStyle = "dots" | "ovals";
+
+export type EyeMood = "calm" | "joy" | "sleep" | "wow";
 
 export type SurfaceMode = "smooth" | "poly";
 
@@ -20,6 +22,7 @@ export type AvatarParams = {
   material: MaterialId;
   idle: IdleId;
   eyes: EyeStyle;
+  mood: EyeMood;
   /** Multiplier on the black-dot size. */
   eyeSize: number;
   surface: SurfaceMode;

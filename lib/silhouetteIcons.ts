@@ -1,11 +1,23 @@
 import * as THREE from "three";
-import { createSilhouetteGeometry } from "./silhouettes";
-import type { SilhouetteId } from "./types";
-import { SILHOUETTES } from "./silhouettes";
+import { placeEyes } from "./eyes";
+import { createAvatarMaterial, type MaterialFinish } from "./materials";
+import { createSilhouetteGeometry, SILHOUETTES } from "./silhouettes";
+import type { MaterialId, SilhouetteId } from "./types";
+
+const SHOWCASE: Record<SilhouetteId, { color: string; material: MaterialId }> = {
+  blob: { color: "#ec0dff", material: "jelly" },
+  bean: { color: "#40ea34", material: "matte" },
+  squircle: { color: "#7ec8ff", material: "gloss" },
+  pear: { color: "#ffd166", material: "jelly" },
+  pill: { color: "#f08a78", material: "matte" },
+  bun: { color: "#c084fc", material: "gloss" },
+  mochi: { color: "#fb7185", material: "jelly" },
+  bud: { color: "#34d399", material: "matte" },
+};
 
 let pending: Promise<Record<SilhouetteId, string>> | null = null;
 
-/** One shared matte material, no eyes, rendered once for the silhouette buttons. */
+/** Each silhouette in its own color and material, with eyes. Shared camera and lights. */
 export function renderSilhouetteIcons() {
   if (pending) return pending;
   pending = Promise.resolve().then(() => {
@@ -14,34 +26,56 @@ export function renderSilhouetteIcons() {
       alpha: true,
       preserveDrawingBuffer: true,
     });
-    renderer.setSize(160, 140);
+    renderer.setSize(180, 156);
     renderer.setClearColor(0x000000, 0);
     const scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight("#fff8f2", "#3a332c", 1.15));
-    const key = new THREE.DirectionalLight("#fff6ee", 1.7);
+    scene.add(new THREE.HemisphereLight("#fff8f2", "#3a332c", 1.2));
+    const key = new THREE.DirectionalLight("#fff6ee", 1.8);
     key.position.set(2.2, 3.2, 4);
     scene.add(key);
-    const camera = new THREE.PerspectiveCamera(30, 160 / 140, 0.1, 20);
+    const fill = new THREE.DirectionalLight("#d7e4ff", 0.55);
+    fill.position.set(-3, 1.2, 2);
+    scene.add(fill);
+    const camera = new THREE.PerspectiveCamera(30, 180 / 156, 0.1, 20);
     camera.position.set(0.55, 0.28, 3.7);
     camera.lookAt(0, 0, 0);
-    const material = new THREE.MeshPhysicalMaterial({
-      color: "#e6d5cb",
-      roughness: 0.62,
-      clearcoat: 0.18,
-      clearcoatRoughness: 0.4,
-    });
+    const eyeGeometry = new THREE.SphereGeometry(1, 14, 12);
+    const eyeMaterial = new THREE.MeshStandardMaterial({ color: "#100e0c", roughness: 0.35 });
     const images = {} as Record<SilhouetteId, string>;
+    const finish: MaterialFinish = { flat: false, vertexColors: false, secondary: "#ffffff", rim: 0.12 };
+
     for (const { id } of SILHOUETTES) {
+      const showcase = SHOWCASE[id];
       const geometry = createSilhouetteGeometry(id, "smooth");
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.rotation.y = 0.45;
-      scene.add(mesh);
+      const material = createAvatarMaterial(showcase.material, showcase.color, {
+        ...finish,
+        secondary: showcase.color,
+      });
+      if (material.transmission > 0.4) {
+        material.transmission = 0.32;
+        material.thickness = 0.7;
+      }
+      const body = new THREE.Mesh(geometry, material);
+      body.rotation.y = 0.45;
+      const anchors = placeEyes(geometry);
+      const radius = anchors.radius * 1.35;
+      for (const anchor of anchors.eyes) {
+        const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        const position = anchor.point.clone().addScaledVector(anchor.normal, radius * 1.05);
+        eye.position.copy(position);
+        eye.scale.setScalar(radius * 0.9);
+        body.add(eye);
+      }
+      scene.add(body);
       renderer.render(scene, camera);
       images[id] = renderer.domElement.toDataURL("image/png");
-      scene.remove(mesh);
+      scene.remove(body);
       geometry.dispose();
+      material.dispose();
     }
-    material.dispose();
+
+    eyeGeometry.dispose();
+    eyeMaterial.dispose();
     renderer.dispose();
     return images;
   });
