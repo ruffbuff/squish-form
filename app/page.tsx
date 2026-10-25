@@ -27,6 +27,7 @@ const INITIAL: AvatarParams = {
   eyes: "dots",
   mood: "calm",
   eyeSize: 1,
+  eyeInset: 0.62,
   backdrop: "studio",
   lightOn: true,
   lightX: 0.72,

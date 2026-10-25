@@ -9,7 +9,7 @@ export function avatarComponentSource(
 ) {
   return `"use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import type { Group, Mesh } from "three";
@@ -40,8 +40,36 @@ export function SquishAvatar({
 }: SquishAvatarProps) {
   const gltf = useGLTF(url);
   const rig = useRef<Group>(null);
-  const reaction = useRef(0);
   const blinkState = useRef({ next: 0.8, time: -1 });
+  const squish = useRef({ mode: "idle" as "idle" | "hold" | "release", id: -1, x: 0, y: 0, amount: 0, releaseT: 0, releaseFrom: 0 });
+
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      const state = squish.current;
+      if (state.mode !== "hold" || event.pointerId !== state.id) return;
+      const dx = event.clientX - state.x;
+      const dy = event.clientY - state.y;
+      if (dx * dx + dy * dy < 144) return;
+      state.releaseFrom = state.amount;
+      state.releaseT = 0;
+      state.mode = "release";
+    };
+    const up = (event: PointerEvent) => {
+      const state = squish.current;
+      if (state.mode !== "hold" || event.pointerId !== state.id) return;
+      state.releaseFrom = Math.max(state.amount, 0.42);
+      state.releaseT = 0;
+      state.mode = "release";
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, []);
 
   useFrame((state, delta) => {
     const current = rig.current;
@@ -96,16 +124,23 @@ export function SquishAvatar({
     roll -= lookX * 0.16;
     pitch -= lookY * 0.1;
 
-    if (reaction.current > 0) {
-      reaction.current += delta;
-      const unit = reaction.current / 0.64;
-      if (unit >= 1) reaction.current = 0;
-      else {
-        const envelope = Math.sin(Math.min(unit, 1) * Math.PI) * (1 - unit * 0.3);
-        width *= 1 + envelope * 0.24;
-        height *= 1 - envelope * 0.36;
-        bob += envelope * 0.18;
-        roll += Math.sin(unit * Math.PI * 2) * envelope * 0.28;
+    const press = squish.current;
+    if (press.mode === "hold") {
+      press.amount += (1 - press.amount) * (1 - Math.exp(-delta * 14));
+      const jelly = Math.sin(time * 16) * 0.028 * Math.min(1, press.amount);
+      width *= 1 + press.amount * 0.28 + jelly;
+      height *= 1 - press.amount * 0.34 - jelly * 0.45;
+    } else if (press.mode === "release") {
+      press.releaseT += delta;
+      const decay = Math.exp(-4.3 * press.releaseT);
+      const spring = press.releaseFrom * decay * Math.cos(11.2 * press.releaseT);
+      if (decay < 0.03) {
+        press.mode = "idle";
+        press.amount = 0;
+      } else {
+        press.amount = spring;
+        width *= 1 + spring * 0.28;
+        height *= 1 - spring * 0.34;
       }
     }
 
@@ -132,16 +167,21 @@ export function SquishAvatar({
         z: number;
       };
       mesh.scale.set(rest.scale[0], rest.scale[1] * open, rest.scale[2]);
-      mesh.position.set(rest.x + lookX * rest.scale[0] * 1.3, rest.y + lookY * rest.scale[1], rest.z);
+      mesh.position.set(rest.x + lookX * rest.scale[0] * 0.35, rest.y + lookY * rest.scale[1] * 0.28, rest.z);
     });
   });
 
   return (
     <group
       ref={rig}
-      onClick={(event) => {
+      onPointerDown={(event) => {
         event.stopPropagation();
-        if (tap) reaction.current = 0.001;
+        const state = squish.current;
+        if (!tap || state.mode === "hold") return;
+        state.mode = "hold";
+        state.id = event.pointerId;
+        state.x = event.nativeEvent.clientX;
+        state.y = event.nativeEvent.clientY;
       }}
     >
       <primitive object={gltf.scene} />
@@ -190,7 +230,7 @@ import { SquishAvatar } from "./squish-avatar";
 - \`idle\` — \`none\`, \`breathe\`, \`sway\`, \`bounce\`, \`spin\` или \`float\`. Spin turns all the way around and back without a jump. Float moves only up and down.
 - \`speed\` и \`smoothness\` — скорость и плавность, от 0 до 1.
 - \`follow\` — глаза и корпус следят за курсором.
-- \`tap\` — клик по форме коротко сжимает её.
+- \`tap\` — зажатие сжимает форму, отпускание пружинит обратно. Сдвиг указателя отдаёт жест камере.
 - \`blink\` — моргание чёрных глаз.
 
 Файл экспортирован в покое, с глазами. Свет сцены задайте у себя в Canvas.

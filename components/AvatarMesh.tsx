@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { BufferGeometry, Material, Mesh } from "three";
-import { eyeMoodShape, placeEyes } from "@/lib/eyes";
+import {
+  calmBlink,
+  eyeMoodMotion,
+  eyeMoodShape,
+  eyeProtrusion,
+  eyeTilt,
+  placeEyes,
+  seatEyePosition,
+} from "@/lib/eyes";
 import { paintGradient } from "@/lib/gradient";
 import { createAvatarMaterial } from "@/lib/materials";
 import { idlePose } from "@/lib/motion";
@@ -21,6 +29,7 @@ import type {
 
 const REST_YAW = 0.38;
 const REST_Y = 0.02;
+const DRAG_SLOP = 12;
 
 type AvatarMeshProps = {
   silhouette: SilhouetteId;
@@ -38,9 +47,20 @@ type AvatarMeshProps = {
   eyes: EyeStyle;
   mood: EyeMood;
   eyeSize: number;
+  eyeInset: number;
   follow: boolean;
   tap: boolean;
   frozen?: boolean;
+};
+
+type Squish = {
+  mode: "idle" | "hold" | "release";
+  pointerId: number;
+  x: number;
+  y: number;
+  amount: number;
+  releaseT: number;
+  releaseFrom: number;
 };
 
 export function AvatarMesh({
@@ -59,6 +79,7 @@ export function AvatarMesh({
   eyes,
   mood,
   eyeSize,
+  eyeInset,
   follow,
   tap,
   frozen = false,
@@ -67,8 +88,23 @@ export function AvatarMesh({
   const eyeMeshes = useRef<(Mesh | null)[]>([null, null]);
   const look = useRef(new THREE.Vector2());
   const hovering = useRef(false);
-  const reaction = useRef(0);
-  const blink = useRef({ next: 0.6, time: -1 });
+  const blink = useRef({ next: 1.1, time: -1 });
+  const displayed = useRef([new THREE.Vector3(), new THREE.Vector3()]);
+  const seated = useRef(false);
+  const squish = useRef<Squish>({
+    mode: "idle",
+    pointerId: -1,
+    x: 0,
+    y: 0,
+    amount: 0,
+    releaseT: 0,
+    releaseFrom: 0,
+  });
+  const scratch = useRef({
+    x: new THREE.Vector3(),
+    y: new THREE.Vector3(),
+    target: new THREE.Vector3(),
+  });
   const gl = useThree((state) => state.gl);
 
   const geometry = useMemo(() => {
@@ -86,7 +122,7 @@ export function AvatarMesh({
       }),
     [material, color, colorB, surface, rim],
   );
-  const anchors = useMemo(() => placeEyes(geometry), [geometry]);
+  const anchors = useMemo(() => placeEyes(geometry, silhouette), [geometry, silhouette]);
   const eyeGeometry = useMemo(() => new THREE.SphereGeometry(1, 18, 14), []);
   const eyeMaterial = useMemo(
     () =>
@@ -95,6 +131,9 @@ export function AvatarMesh({
         roughness: 0.4,
         metalness: 0,
         name: "squish-eye",
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
       }),
     [],
   );
@@ -135,17 +174,49 @@ export function AvatarMesh({
     };
   }, [gl]);
 
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      const state = squish.current;
+      if (state.mode !== "hold" || event.pointerId !== state.pointerId) return;
+      const dx = event.clientX - state.x;
+      const dy = event.clientY - state.y;
+      if (dx * dx + dy * dy <= DRAG_SLOP * DRAG_SLOP) return;
+      beginRelease(state, 0);
+    };
+    const up = (event: PointerEvent) => {
+      const state = squish.current;
+      if (state.mode !== "hold" || event.pointerId !== state.pointerId) return;
+      beginRelease(state, 0.42);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, []);
+
   const radius = anchors.radius * eyeSize;
   const moodShape = eyeMoodShape(mood, eyes === "ovals");
+  const protrusion = eyeProtrusion(eyeInset, anchors.sink);
   const restScale: [number, number, number] = [
     radius * moodShape.sx,
     radius * moodShape.sy,
     radius * moodShape.sz,
   ];
-  const eyeLift = radius * moodShape.lift;
-  const eyePositions = anchors.eyes.map((anchor) =>
-    anchor.point.clone().addScaledVector(anchor.normal, radius * 1.05),
-  );
+  const bases = anchors.eyes.map((anchor) => seatEyePosition(anchor, radius, protrusion, moodShape.lift));
+
+  useLayoutEffect(() => {
+    if (seated.current) return;
+    bases.forEach((base, index) => displayed.current[index].copy(base));
+    seated.current = true;
+    eyeMeshes.current.forEach((eye, index) => {
+      if (!eye) return;
+      eye.position.copy(displayed.current[index]);
+    });
+  }, [bases]);
 
   useFrame((state, delta) => {
     const current = rig.current;
@@ -168,7 +239,6 @@ export function AvatarMesh({
     look.current.x = THREE.MathUtils.damp(look.current.x, targetX, 8, delta);
     look.current.y = THREE.MathUtils.damp(look.current.y, targetY, 8, delta);
 
-    const open = mood === "calm" ? blinkOpen(blink.current, time, delta) : 1;
     const pose = idlePose(idle, time, speed, smoothness);
     let { width, height, yaw, roll, pitch, bob } = pose;
 
@@ -176,42 +246,88 @@ export function AvatarMesh({
     roll += -look.current.x * 0.16;
     pitch += -look.current.y * 0.1;
 
-    if (reaction.current > 0) {
-      reaction.current += delta;
-      const unit = reaction.current / 0.64;
-      if (unit >= 1) {
-        reaction.current = 0;
+    const press = squish.current;
+    if (!tap && press.mode === "hold") beginRelease(press, 0);
+    if (press.mode === "hold") {
+      press.amount += (1 - press.amount) * (1 - Math.exp(-delta * 14));
+      const jelly = Math.sin(time * 16) * 0.028 * Math.min(1, press.amount);
+      width *= 1 + press.amount * 0.28 + jelly;
+      height *= 1 - press.amount * 0.34 - jelly * 0.45;
+      bob -= press.amount * 0.05;
+    } else if (press.mode === "release") {
+      press.releaseT += delta;
+      const decay = Math.exp(-4.3 * press.releaseT);
+      const spring = press.releaseFrom * decay * Math.cos(11.2 * press.releaseT);
+      if (decay < 0.03) {
+        press.mode = "idle";
+        press.amount = 0;
       } else {
-        const envelope = Math.sin(Math.min(unit, 1) * Math.PI) * (1 - unit * 0.3);
-        width *= 1 + envelope * 0.24;
-        height *= 1 - envelope * 0.36;
-        bob += envelope * 0.18;
-        roll += Math.sin(unit * Math.PI * 2) * envelope * 0.28;
+        press.amount = spring;
+        width *= 1 + spring * 0.28;
+        height *= 1 - spring * 0.34;
+        bob -= Math.max(spring, 0) * 0.04;
       }
     }
 
-    current.scale.set(width, height, width);
+    current.scale.set(width, Math.max(height, 0.35), width);
     current.rotation.set(pitch, REST_YAW + yaw, roll);
     current.position.y = REST_Y + bob;
 
-    eyeMeshes.current.forEach((eye) => {
-      if (!eye) return;
-      const rest = eye.userData.restScale as [number, number, number] | undefined;
-      const origin = eye.userData.restPosition as [number, number, number] | undefined;
-      if (!rest || !origin) return;
-      eye.scale.set(rest[0], Math.max(rest[1] * open, radius * 0.08), rest[2]);
-      eye.position.set(
-        origin[0] + look.current.x * radius * 1.15,
-        origin[1] + eyeLift + look.current.y * radius * 0.9,
-        origin[2],
-      );
+    const damp = follow ? 0.4 : 1;
+    const motion = eyeMoodMotion(mood, time, damp);
+    const open = mood === "calm" ? calmBlink(blink.current, time, delta, damp) : 1;
+    const step = 1 - Math.exp(-delta * 12);
+    const slide = scratch.current;
+
+    const eyeList: Mesh[] = [];
+    current.traverse((object) => {
+      if (object.name === "squish-eye") eyeList.push(object as Mesh);
     });
+    eyeList.sort((a, b) => (a.userData.eyeIndex as number) - (b.userData.eyeIndex as number));
+
+    eyeList.forEach((eye, index) => {
+      const anchor = anchors.eyes[index];
+      const base = bases[index];
+      if (!anchor || !base) return;
+      const shown = displayed.current[index];
+      if (!shown) return;
+      if (!seated.current) shown.copy(base);
+      else shown.lerp(base, step);
+
+      slide.x.set(1, 0, 0).addScaledVector(anchor.normal, -anchor.normal.x);
+      if (slide.x.lengthSq() < 1e-6) slide.x.set(1, 0, 0);
+      else slide.x.normalize();
+      slide.y.set(0, 1, 0).addScaledVector(anchor.normal, -anchor.normal.y);
+      if (slide.y.lengthSq() < 1e-6) slide.y.set(0, 1, 0);
+      else slide.y.normalize();
+
+      slide.target.copy(shown);
+      // A short slide on the tangent plane. A longer one walks off curved cheeks.
+      slide.target.addScaledVector(slide.x, look.current.x * radius * 0.2);
+      slide.target.addScaledVector(slide.y, look.current.y * radius * 0.14);
+      slide.target.y += motion.bob * radius;
+      eye.position.copy(slide.target);
+      eye.scale.set(
+        restScale[0] * motion.scaleX,
+        Math.max(restScale[1] * motion.scaleY * open, radius * 0.07),
+        restScale[2] * motion.scaleZ,
+      );
+      eye.rotation.z = eyeTilt(moodShape, index);
+      eye.userData.restScale = restScale;
+      eye.userData.restPosition = [base.x, base.y, base.z];
+    });
+    seated.current = true;
   });
 
-  const poke = (event: ThreeEvent<MouseEvent>) => {
-    event.stopPropagation();
-    if (!tap) return;
-    reaction.current = 0.001;
+  const pressDown = (event: ThreeEvent<PointerEvent>) => {
+    if (!tap || frozen) return;
+    const state = squish.current;
+    if (state.mode === "hold") return;
+    state.mode = "hold";
+    state.pointerId = event.pointerId;
+    state.x = event.nativeEvent.clientX;
+    state.y = event.nativeEvent.clientY;
+    state.releaseT = 0;
   };
 
   return (
@@ -222,7 +338,7 @@ export function AvatarMesh({
         material={surfaceMaterial}
         castShadow={false}
         receiveShadow={false}
-        onClick={poke}
+        onPointerDown={pressDown}
         onPointerOver={() => {
           document.body.style.cursor = tap ? "pointer" : "";
         }}
@@ -230,38 +346,34 @@ export function AvatarMesh({
           document.body.style.cursor = "";
         }}
       />
-      {eyePositions.map((position, index) => (
+      {bases.map((position, index) => (
         <mesh
           key={index}
           name="squish-eye"
           geometry={eyeGeometry}
           material={eyeMaterial}
-          position={position}
-          scale={restScale}
+          rotation={[0, 0, eyeTilt(moodShape, index)]}
           userData={{
+            eyeIndex: index,
             restScale,
             restPosition: [position.x, position.y, position.z],
           }}
           ref={(node) => {
             eyeMeshes.current[index] = node;
+            if (!node) return;
+            node.scale.set(restScale[0], restScale[1], restScale[2]);
+            if (node.position.lengthSq() < 1e-8) node.position.copy(position);
           }}
-          onClick={poke}
+          onPointerDown={pressDown}
         />
       ))}
     </group>
   );
 }
 
-function blinkOpen(state: { next: number; time: number }, time: number, delta: number) {
-  if (state.time < 0 && time >= state.next) state.time = 0;
-  if (state.time < 0) return 1;
-  state.time += delta;
-  const unit = state.time / 0.16;
-  if (unit >= 1) {
-    state.time = -1;
-    state.next = time + 1.4 + Math.random() * 2.2;
-    return 1;
-  }
-  return 1 - Math.sin(Math.min(unit, 1) * Math.PI) * 0.92;
+function beginRelease(state: Squish, floor: number) {
+  if (state.mode !== "hold") return;
+  state.mode = "release";
+  state.releaseT = 0;
+  state.releaseFrom = Math.max(state.amount, floor);
 }
-

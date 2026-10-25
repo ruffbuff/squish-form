@@ -15,7 +15,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - **Silhouette** — drop, bean, squircle, pear, pill, bun, mochi, bud. The buttons are colored previews with eyes. The circle above Random is a still frame of the current avatar.
 - **Surface** — smooth by default. Polygons is an optional flat look.
-- **Eyes** — dots or ovals, with a mood: calm (idle blink), joy, sleep, or surprise. Size is a slider.
+- **Eyes** — dots or ovals, with a mood: calm (a rare blink), joy (a squint that pulses), sleep (lids that breathe), or surprise (a pop, then it settles). Size and depth are sliders. Depth presses the eyes into the form.
 - **Color** — solid, or a two-stop gradient with angle and a soft or hard blend.
 - **Material** — matte, jelly, clay, gloss, pearlescent.
 - **Rim** — optional fresnel. Zero turns it off.
@@ -24,9 +24,9 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Backdrop** — empty, studio gradient, or a soft floor grid.
 - **Light** — a point light with horizontal, vertical, and intensity controls, or off. The bulb hides when the light is off.
 - **Follow cursor** — eyes and lean track the pointer.
-- **Tap reaction** — its own on/off toggle.
+- **Tap reaction** — its own on/off toggle. Holding on the form squashes it; letting go springs back. A camera drag does not keep the squash.
 - **Camera home** — the round button at the bottom-right of the view returns the camera to the standard pose.
-- **Random** — silhouette, color, gradient, material, eyes, and eye mood. It does not change light, follow, tap, or motion.
+- **Random** — silhouette, color, gradient, material, eyes, eye mood, and a small eye-depth jitter. It does not change light, follow, tap, or motion.
 
 ## Export
 

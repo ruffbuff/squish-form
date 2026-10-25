@@ -19,6 +19,7 @@ export function AvatarPreview(props: AvatarParams) {
     rim,
     eyes,
     eyeSize,
+    eyeInset,
     mood,
   } = props;
 
@@ -37,12 +38,27 @@ export function AvatarPreview(props: AvatarParams) {
           rim,
           eyes,
           eyeSize,
+          eyeInset,
           mood,
         }),
       );
     }, 50);
     return () => window.clearTimeout(timer);
-  }, [silhouette, color, colorB, colorMode, gradientAngle, gradientSoft, material, surface, rim, eyes, eyeSize, mood]);
+  }, [
+    silhouette,
+    color,
+    colorB,
+    colorMode,
+    gradientAngle,
+    gradientSoft,
+    material,
+    surface,
+    rim,
+    eyes,
+    eyeSize,
+    eyeInset,
+    mood,
+  ]);
 
   return (
     <div

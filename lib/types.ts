@@ -25,6 +25,8 @@ export type AvatarParams = {
   mood: EyeMood;
   /** Multiplier on the black-dot size. */
   eyeSize: number;
+  /** 0–1. Higher presses the eyes into the mesh. */
+  eyeInset: number;
   surface: SurfaceMode;
   colorMode: ColorMode;
   colorB: string;

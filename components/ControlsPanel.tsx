@@ -97,6 +97,12 @@ export function ControlsPanel({
           display={params.eyeSize < 0.85 ? "Мелкие" : params.eyeSize > 1.25 ? "Крупнее" : "Средние"}
           onChange={(unit) => onChange({ eyeSize: 0.55 + unit * 1.15 })}
         />
+        <Slider
+          label="Глубина"
+          value={params.eyeInset}
+          display={params.eyeInset < 0.28 ? "Снаружи" : params.eyeInset > 0.82 ? "Вглубь" : "Глубина"}
+          onChange={(eyeInset) => onChange({ eyeInset })}
+        />
         <p className="pt-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Настроение</p>
         <Segment options={MOODS} value={params.mood} onChange={(mood) => onChange({ mood })} />
       </Field>
@@ -195,7 +201,7 @@ export function ControlsPanel({
       />
       <Toggle
         label="Реакция на тап"
-        hint="Клик сжимает форму"
+        hint="Зажатие сжимает форму"
         on={params.tap}
         onClick={() => onChange({ tap: !params.tap })}
       />
