@@ -1,16 +1,42 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { AvatarPreview } from "@/components/AvatarPreview";
 import { ColorPicker } from "@/components/ColorPicker";
+import { SilhouettePicker } from "@/components/SilhouettePicker";
 import { MATERIALS } from "@/lib/materials";
-import { SILHOUETTES } from "@/lib/silhouettes";
-import { qualityTier, type AvatarParams, type EyeStyle, type IdleId } from "@/lib/types";
+import { qualityTier, type AvatarParams, type BackdropId, type ColorMode, type EyeMood, type EyeStyle, type IdleId, type SurfaceMode } from "@/lib/types";
 
 const IDLES: { id: IdleId; label: string }[] = [
   { id: "none", label: "Без движения" },
   { id: "breathe", label: "Дыхание" },
   { id: "sway", label: "Покачивание" },
-  { id: "both", label: "Оба" },
+  { id: "bounce", label: "Прыжок" },
+  { id: "spin", label: "Оборот" },
+  { id: "float", label: "Левитация" },
+];
+
+const MOODS: { id: EyeMood; label: string }[] = [
+  { id: "calm", label: "Обычные" },
+  { id: "joy", label: "Радость" },
+  { id: "sleep", label: "Сон" },
+  { id: "wow", label: "Удивление" },
+];
+
+const SURFACES: { id: SurfaceMode; label: string }[] = [
+  { id: "smooth", label: "Гладкий" },
+  { id: "poly", label: "Полигоны" },
+];
+
+const COLOR_MODES: { id: ColorMode; label: string }[] = [
+  { id: "solid", label: "Сплошной" },
+  { id: "gradient", label: "Градиент" },
+];
+
+const BACKDROPS: { id: BackdropId; label: string }[] = [
+  { id: "empty", label: "Пусто" },
+  { id: "studio", label: "Студия" },
+  { id: "grid", label: "Сетка" },
 ];
 
 const EYES: { id: EyeStyle; label: string }[] = [
@@ -43,26 +69,24 @@ export function ControlsPanel({
   onDownloadPng,
   onDownloadPack,
 }: ControlsPanelProps) {
+  const [stop, setStop] = useState<"a" | "b">("a");
+  const editingB = params.colorMode === "gradient" && stop === "b";
+
   return (
     <div className="flex h-full flex-col gap-5 px-5 py-6">
-      <header>
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">playground</p>
-        <h1 className="mt-1 text-[1.55rem] font-semibold leading-none tracking-tight">SquishForm</h1>
-        <p className="mt-2 text-[13px] leading-snug text-[var(--muted)]">
-          Генератор мягких 3D-аватаров для ботов и агентов. Сейчас бесплатно, платный пакет — позже.
-        </p>
-      </header>
+      <h1 className="sr-only">SquishForm</h1>
+      <AvatarPreview {...params} />
 
       <button type="button" onClick={onRandom} className="download">
         Случайно
       </button>
 
       <Field label="Силуэт">
-        <Segment
-          options={SILHOUETTES}
-          value={params.silhouette}
-          onChange={(silhouette) => onChange({ silhouette })}
-        />
+        <SilhouettePicker value={params.silhouette} onChange={(silhouette) => onChange({ silhouette })} />
+      </Field>
+
+      <Field label="Поверхность">
+        <Segment options={SURFACES} value={params.surface} onChange={(surface) => onChange({ surface })} />
       </Field>
 
       <Field label="Глаза">
@@ -73,10 +97,35 @@ export function ControlsPanel({
           display={params.eyeSize < 0.85 ? "Мелкие" : params.eyeSize > 1.25 ? "Крупнее" : "Средние"}
           onChange={(unit) => onChange({ eyeSize: 0.55 + unit * 1.15 })}
         />
+        <p className="pt-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Настроение</p>
+        <Segment options={MOODS} value={params.mood} onChange={(mood) => onChange({ mood })} />
       </Field>
 
       <Field label="Цвет">
-        <ColorPicker color={params.color} onChange={(color) => onChange({ color })} />
+        <Segment options={COLOR_MODES} value={params.colorMode} onChange={(colorMode) => onChange({ colorMode })} />
+        {params.colorMode === "gradient" ? (
+          <div className="flex gap-2">
+            <StopButton label="A" color={params.color} active={stop === "a"} onClick={() => setStop("a")} />
+            <StopButton label="B" color={params.colorB} active={stop === "b"} onClick={() => setStop("b")} />
+          </div>
+        ) : null}
+        <ColorPicker
+          color={editingB ? params.colorB : params.color}
+          onChange={(next) => onChange(editingB ? { colorB: next } : { color: next })}
+        />
+        {params.colorMode === "gradient" ? (
+          <>
+            <Slider label="Угол" value={params.gradientAngle} onChange={(gradientAngle) => onChange({ gradientAngle })} />
+            <Segment
+              options={[
+                { id: "soft", label: "Мягкий" },
+                { id: "hard", label: "Жёсткий" },
+              ]}
+              value={params.gradientSoft ? "soft" : "hard"}
+              onChange={(mode) => onChange({ gradientSoft: mode === "soft" })}
+            />
+          </>
+        ) : null}
       </Field>
 
       <Field label="Материал">
@@ -85,6 +134,21 @@ export function ControlsPanel({
 
       <Field label="Движение">
         <Segment options={IDLES} value={params.idle} onChange={(idle) => onChange({ idle })} />
+        <Slider label="Скорость" value={params.speed} onChange={(speed) => onChange({ speed })} />
+        <Slider label="Плавность" value={params.smoothness} onChange={(smoothness) => onChange({ smoothness })} />
+      </Field>
+
+      <Field label="Край">
+        <Slider
+          label="Край"
+          display={params.rim < 0.08 ? "Выкл" : params.rim > 0.55 ? "Ярко" : "Мягко"}
+          value={params.rim}
+          onChange={(rim) => onChange({ rim })}
+        />
+      </Field>
+
+      <Field label="Фон">
+        <Segment options={BACKDROPS} value={params.backdrop} onChange={(backdrop) => onChange({ backdrop })} />
       </Field>
 
       <Field label="Качество">
@@ -205,6 +269,30 @@ function Toggle({ label, hint, on, onClick }: { label: string; hint: string; on:
       >
         {on ? "Вкл" : "Выкл"}
       </span>
+    </button>
+  );
+}
+
+function StopButton({
+  label,
+  color,
+  active,
+  onClick,
+}: {
+  label: string;
+  color: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className="flex flex-1 items-center gap-2 rounded-2xl bg-black/25 px-3 py-2 text-sm"
+    >
+      <span className="h-5 w-5 rounded-full border border-white/20" style={{ background: color }} />
+      {label}
     </button>
   );
 }

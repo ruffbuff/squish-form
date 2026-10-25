@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import type { QualityTier, SilhouetteId } from "./types";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import type { SilhouetteId, SurfaceMode } from "./types";
 
 export const SILHOUETTES: { id: SilhouetteId; label: string }[] = [
   { id: "blob", label: "Капля" },
@@ -8,22 +9,18 @@ export const SILHOUETTES: { id: SilhouetteId; label: string }[] = [
   { id: "pear", label: "Груша" },
   { id: "pill", label: "Капсула" },
   { id: "bun", label: "Пышка" },
+  { id: "mochi", label: "Моти" },
+  { id: "bud", label: "Бутон" },
 ];
 
-/** Icosphere detail. No UV-sphere poles, so gloss and jelly do not pick up a meridian seam. */
-const DETAIL: Record<QualityTier, number> = {
-  0: 1,
-  1: 3,
-  2: 4,
-};
-
 /**
- * Closed icosphere, displaced into a soft silhouette.
- * Vertices are then recentered so every form frames the same way.
+ * Smooth uses a dense sphere with the seam welded so jelly stays round.
+ * Poly is a coarse icosphere; the material draws it flat on purpose.
  */
-export function createSilhouetteGeometry(id: SilhouetteId, tier: QualityTier = 2): THREE.BufferGeometry {
-  const geometry = new THREE.IcosahedronGeometry(1, DETAIL[tier]);
-  const position = geometry.attributes.position;
+export function createSilhouetteGeometry(id: SilhouetteId, surface: SurfaceMode = "smooth"): THREE.BufferGeometry {
+  const source =
+    surface === "poly" ? new THREE.IcosahedronGeometry(1, 2) : new THREE.SphereGeometry(1, 144, 108);
+  const position = source.attributes.position;
   const vertex = new THREE.Vector3();
 
   for (let i = 0; i < position.count; i++) {
@@ -33,6 +30,8 @@ export function createSilhouetteGeometry(id: SilhouetteId, tier: QualityTier = 2
   }
 
   position.needsUpdate = true;
+  const geometry = surface === "smooth" ? mergeVertices(source, 1e-4) : source;
+  if (geometry !== source) source.dispose();
   geometry.computeVertexNormals();
   centerAndFit(geometry, 1);
   return geometry;
@@ -44,7 +43,9 @@ function shapeVertex(id: SilhouetteId, vertex: THREE.Vector3): THREE.Vector3 {
   if (id === "squircle") return shapeSquircle(vertex);
   if (id === "pear") return shapePear(vertex);
   if (id === "pill") return shapePill(vertex);
-  return shapeBun(vertex);
+  if (id === "bun") return shapeBun(vertex);
+  if (id === "mochi") return shapeMochi(vertex);
+  return shapeBud(vertex);
 }
 
 /** Rounded drop: full belly low, soft taper toward the top. */
@@ -119,6 +120,37 @@ function shapeBun(vertex: THREE.Vector3): THREE.Vector3 {
     y *= 0.9;
   }
   return new THREE.Vector3(dir.x * 1.14, y, dir.z * 1.14);
+}
+
+/** Wide soft puck. Thin through the middle, domed on top, not a capsule. */
+function shapeMochi(vertex: THREE.Vector3): THREE.Vector3 {
+  const dir = vertex.clone().normalize();
+  const radial = Math.hypot(dir.x, dir.z);
+  const x = dir.x * 1.42;
+  const z = dir.z * 1.22;
+  let y = dir.y * 0.38;
+  const dome = Math.exp(-(radial * radial) / 0.5);
+  y += Math.sign(dir.y || 1) * dome * 0.14;
+  return new THREE.Vector3(x, y, z);
+}
+
+/** Round body with a soft point on top, narrower than the pear's belly. */
+function shapeBud(vertex: THREE.Vector3): THREE.Vector3 {
+  const dir = vertex.clone().normalize();
+  const y = dir.y;
+  const t = (y + 1) / 2;
+  const bell = Math.sin(Math.PI * Math.pow(t, 0.78));
+  let radius = bell * 0.62;
+  if (y < -0.15) {
+    const cap = Math.sqrt(Math.max(0, 1 - ((y + 0.1) / 0.95) ** 2));
+    radius = Math.max(radius, cap * 0.78);
+  }
+  if (y > 0.35) {
+    const tip = 1 - (y - 0.35) / 0.65;
+    radius *= 0.55 + tip * 0.45;
+  }
+  const horizontal = Math.hypot(dir.x, dir.z) || 1;
+  return new THREE.Vector3((dir.x / horizontal) * radius, y * 1.28, (dir.z / horizontal) * radius * 0.92);
 }
 
 /** Soft square: unit direction pulled onto an L4 superellipsoid, then pillowed. */

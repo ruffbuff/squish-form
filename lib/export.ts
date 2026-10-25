@@ -71,12 +71,17 @@ export async function exportProjectPack(
   idle: IdleId,
   follow: boolean,
   tap: boolean,
+  speed: number,
+  smoothness: number,
 ) {
   const glb = await buildAvatarGlb(root);
   const encoder = new TextEncoder();
   const zip = createZip([
     { name: "squish-avatar/avatar.glb", data: glb },
-    { name: "squish-avatar/squish-avatar.tsx", data: encoder.encode(avatarComponentSource(idle, follow, tap)) },
+    {
+      name: "squish-avatar/squish-avatar.tsx",
+      data: encoder.encode(avatarComponentSource(idle, follow, tap, speed, smoothness)),
+    },
     { name: "squish-avatar/README.md", data: encoder.encode(packReadme()) },
   ]);
   downloadBlob(new Blob([zip], { type: "application/zip" }), `squish-pack-${silhouette}-${fileStamp()}.zip`);
