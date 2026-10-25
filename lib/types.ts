@@ -2,7 +2,7 @@ export type SilhouetteId = "blob" | "bean" | "squircle" | "pear" | "pill" | "bun
 
 export type MaterialId = "matte" | "jelly" | "clay" | "gloss" | "pearl";
 
-export type IdleId = "breathe" | "sway" | "both";
+export type IdleId = "none" | "breathe" | "sway" | "both";
 
 export type EyeStyle = "dots" | "ovals";
 
@@ -14,11 +14,19 @@ export type AvatarParams = {
   material: MaterialId;
   idle: IdleId;
   eyes: EyeStyle;
-  /** 0–1, moves the highlight point light from left to right. */
-  light: number;
+  /** Multiplier on the black-dot size. */
+  eyeSize: number;
+  lightOn: boolean;
+  /** 0–1, highlight point light from left to right. */
+  lightX: number;
+  /** 0–1, highlight point light from low to high. */
+  lightY: number;
+  /** 0–1, highlight strength while the light is on. */
+  lightIntensity: number;
   /** 0–1 mesh density, pixel ratio, and contact shadow. */
   quality: number;
   follow: boolean;
+  tap: boolean;
 };
 
 export function qualityTier(value: number): QualityTier {

@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
-import { captureAvatarPng, exportAvatarGlb } from "@/lib/export";
+import { captureAvatarPng, exportAvatarGlb, exportProjectPack } from "@/lib/export";
 import { qualityTier, type AvatarParams } from "@/lib/types";
 import { AvatarMesh } from "./AvatarMesh";
 import { SoftShadow } from "./SoftShadow";
@@ -11,6 +11,7 @@ import { SoftShadow } from "./SoftShadow";
 export type PlaygroundApi = {
   downloadGlb: () => Promise<void>;
   downloadPng: () => void;
+  downloadPack: () => Promise<void>;
 };
 
 type AvatarCanvasProps = AvatarParams & {
@@ -36,11 +37,13 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
       }}
     >
       <color attach="background" args={["#141210"]} />
-      <hemisphereLight args={["#fff4ec", "#2a241f", 0.35]} />
-      <directionalLight position={[3.4, 4.8, 2.6]} intensity={1.7} color="#fff6ee" />
-      <directionalLight position={[-4.2, 1.4, 2.2]} intensity={0.55} color="#c5d4ff" />
-      <directionalLight position={[0.4, 2.2, -4.2]} intensity={0.85} color="#ffd8c8" />
-      <Highlight amount={props.light} />
+      <hemisphereLight args={["#fff6ee", "#3a332c", 0.7]} />
+      <directionalLight position={[2.6, 4.4, 3.4]} intensity={1.55} color="#fff8f2" />
+      <directionalLight position={[-3.8, 1.8, 2.6]} intensity={0.72} color="#d7e4ff" />
+      <directionalLight position={[0.4, 1.4, -3.6]} intensity={0.48} color="#ffd8c8" />
+      {props.lightOn ? (
+        <Highlight x={props.lightX} y={props.lightY} intensity={props.lightIntensity} />
+      ) : null}
       <Suspense fallback={null}>
         <StudioEnvironment />
       </Suspense>
@@ -50,12 +53,20 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
         material={props.material}
         idle={props.idle}
         eyes={props.eyes}
+        eyeSize={props.eyeSize}
         quality={props.quality}
         follow={props.follow}
+        tap={props.tap}
       />
       {tier > 0 ? <SoftShadow /> : null}
       <QualityBinder quality={props.quality} />
-      <ExportBinder silhouette={props.silhouette} onReady={props.onReady} />
+      <ExportBinder
+        silhouette={props.silhouette}
+        idle={props.idle}
+        follow={props.follow}
+        tap={props.tap}
+        onReady={props.onReady}
+      />
       <OrbitControls
         enablePan={false}
         enableDamping
@@ -83,13 +94,15 @@ function QualityBinder({ quality }: { quality: number }) {
   return null;
 }
 
-function Highlight({ amount }: { amount: number }) {
-  const x = -1.35 + amount * 2.7;
+function Highlight({ x, y, intensity }: { x: number; y: number; intensity: number }) {
+  const px = -1.55 + x * 3.1;
+  const py = 0.15 + y * 1.55;
+  const power = 8 + intensity * 28;
   return (
-    <group name="squish-light" position={[x, 1.05, 1.65]}>
-      <pointLight intensity={26} distance={5.5} decay={2} color="#fff8f2" />
+    <group name="squish-light" position={[px, py, 1.7]}>
+      <pointLight intensity={power} distance={6} decay={2} color="#fff8f2" />
       <mesh>
-        <sphereGeometry args={[0.055, 20, 16]} />
+        <sphereGeometry args={[0.045, 18, 14]} />
         <meshBasicMaterial color="#fff7ee" toneMapped={false} />
       </mesh>
     </group>
@@ -109,9 +122,15 @@ function StudioEnvironment() {
 
 function ExportBinder({
   silhouette,
+  idle,
+  follow,
+  tap,
   onReady,
 }: {
   silhouette: AvatarParams["silhouette"];
+  idle: AvatarParams["idle"];
+  follow: boolean;
+  tap: boolean;
   onReady: (api: PlaygroundApi | null) => void;
 }) {
   const gl = useThree((state) => state.gl);
@@ -128,9 +147,14 @@ function ExportBinder({
       downloadPng: () => {
         captureAvatarPng(gl, scene, camera, silhouette);
       },
+      downloadPack: async () => {
+        const root = scene.getObjectByName("squish-avatar");
+        if (!root) throw new Error("Форма ещё не готова");
+        await exportProjectPack(root, silhouette, idle, follow, tap);
+      },
     });
     return () => onReady(null);
-  }, [camera, gl, onReady, scene, silhouette]);
+  }, [camera, follow, gl, idle, onReady, scene, silhouette, tap]);
 
   return null;
 }

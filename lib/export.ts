@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
-import type { SilhouetteId } from "./types";
+import { avatarComponentSource, packReadme } from "./projectPack";
+import type { IdleId, SilhouetteId } from "./types";
+import { createZip } from "./zip";
 
 export function fileStamp(date = new Date()) {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -19,7 +21,7 @@ export function squishFilename(kind: "glb" | "png", silhouette: SilhouetteId, da
   return `squish-${silhouette}-${fileStamp(date)}.${kind}`;
 }
 
-export async function exportAvatarGlb(root: THREE.Object3D, silhouette: SilhouetteId) {
+export async function buildAvatarGlb(root: THREE.Object3D) {
   const exporter = new GLTFExporter();
   const clone = root.clone(true);
   clone.name = "squish";
@@ -29,17 +31,15 @@ export async function exportAvatarGlb(root: THREE.Object3D, silhouette: Silhouet
 
   clone.traverse((object) => {
     const mesh = object as THREE.Mesh;
-    if (object.name === "squish-pupil") {
-      object.position.x = 0;
-      object.position.y = 0;
-    }
     if (object.name === "squish-eye") {
       const rest = object.userData.restScale as [number, number, number] | undefined;
+      const origin = object.userData.restPosition as [number, number, number] | undefined;
       if (rest) object.scale.set(rest[0], rest[1], rest[2]);
+      if (origin) object.position.set(origin[0], origin[1], origin[2]);
     }
     if (!mesh.isMesh) return;
     mesh.geometry = mesh.geometry.clone();
-    const source = mesh.material as THREE.MeshPhysicalMaterial;
+    const source = mesh.material as THREE.MeshStandardMaterial;
     const material = source.clone();
     if (source.bumpMap) {
       material.bumpMap = source.bumpMap.clone();
@@ -53,13 +53,33 @@ export async function exportAvatarGlb(root: THREE.Object3D, silhouette: Silhouet
     const mesh = object as THREE.Mesh;
     if (!mesh.isMesh) return;
     mesh.geometry.dispose();
-    const material = mesh.material as THREE.MeshPhysicalMaterial;
+    const material = mesh.material as THREE.MeshStandardMaterial;
     material.bumpMap?.dispose();
     material.dispose();
   });
-  const bytes = result instanceof ArrayBuffer ? result : new TextEncoder().encode(JSON.stringify(result));
-  const blob = new Blob([bytes], { type: "model/gltf-binary" });
-  downloadBlob(blob, squishFilename("glb", silhouette));
+  return result instanceof ArrayBuffer ? new Uint8Array(result) : new TextEncoder().encode(JSON.stringify(result));
+}
+
+export async function exportAvatarGlb(root: THREE.Object3D, silhouette: SilhouetteId) {
+  const bytes = await buildAvatarGlb(root);
+  downloadBlob(new Blob([bytes], { type: "model/gltf-binary" }), squishFilename("glb", silhouette));
+}
+
+export async function exportProjectPack(
+  root: THREE.Object3D,
+  silhouette: SilhouetteId,
+  idle: IdleId,
+  follow: boolean,
+  tap: boolean,
+) {
+  const glb = await buildAvatarGlb(root);
+  const encoder = new TextEncoder();
+  const zip = createZip([
+    { name: "squish-avatar/avatar.glb", data: glb },
+    { name: "squish-avatar/squish-avatar.tsx", data: encoder.encode(avatarComponentSource(idle, follow, tap)) },
+    { name: "squish-avatar/README.md", data: encoder.encode(packReadme()) },
+  ]);
+  downloadBlob(new Blob([zip], { type: "application/zip" }), `squish-pack-${silhouette}-${fileStamp()}.zip`);
 }
 
 export function captureAvatarPng(
