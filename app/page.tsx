@@ -4,6 +4,12 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlaygroundApi } from "@/components/AvatarCanvas";
 import { ControlsPanel } from "@/components/ControlsPanel";
+import { FlatControls } from "@/components/FlatControls";
+import { FlatStage } from "@/components/FlatStage";
+import { ModeSwitch } from "@/components/ModeSwitch";
+import { downloadFlatPng, downloadFlatSvg } from "@/lib/flatExport";
+import { randomizeFlat } from "@/lib/flatRandom";
+import { FLAT_INITIAL, MODE_STORAGE_KEY, type FlatParams, type PlayMode } from "@/lib/flatTypes";
 import { randomizeAvatar } from "@/lib/random";
 import type { AvatarParams } from "@/lib/types";
 
@@ -39,13 +45,24 @@ const INITIAL: AvatarParams = {
 };
 
 export default function Page() {
+  const [mode, setMode] = useState<PlayMode>("3d");
   const [params, setParams] = useState<AvatarParams>(INITIAL);
+  const [flat, setFlat] = useState<FlatParams>(FLAT_INITIAL);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [home, setHome] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const apiRef = useRef<PlaygroundApi | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(MODE_STORAGE_KEY);
+      if (saved === "flat" || saved === "3d") setMode(saved);
+    } catch {
+      /* private browsing */
+    }
+  }, []);
 
   const onReady = useCallback((api: PlaygroundApi | null) => {
     apiRef.current = api;
@@ -56,8 +73,26 @@ export default function Page() {
     setParams((current) => ({ ...current, ...patch }));
   }, []);
 
+  const onFlatChange = useCallback((patch: Partial<FlatParams>) => {
+    setFlat((current) => ({ ...current, ...patch }));
+  }, []);
+
   const onRandom = useCallback(() => {
     setParams((current) => randomizeAvatar(current));
+  }, []);
+
+  const onFlatRandom = useCallback(() => {
+    setFlat((current) => randomizeFlat(current));
+  }, []);
+
+  const onMode = useCallback((next: PlayMode) => {
+    setMode(next);
+    setError(null);
+    try {
+      window.localStorage.setItem(MODE_STORAGE_KEY, next);
+    } catch {
+      /* ignore quota / private mode */
+    }
   }, []);
 
   useEffect(() => {
@@ -108,38 +143,84 @@ export default function Page() {
     }
   }, []);
 
+  const onDownloadFlatSvg = useCallback(() => {
+    setError(null);
+    try {
+      downloadFlatSvg(flat);
+      setNotice("Готово");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось сохранить SVG");
+    }
+  }, [flat]);
+
+  const onDownloadFlatPng = useCallback(async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await downloadFlatPng(flat);
+      setNotice("Готово");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось сохранить PNG");
+    } finally {
+      setBusy(false);
+    }
+  }, [flat]);
+
   return (
     <main className="flex h-dvh flex-col bg-[var(--bg)] md:flex-row">
       <section className="relative h-[58dvh] shrink-0 md:h-auto md:min-h-0 md:flex-1">
         <div className="absolute inset-0" style={{ touchAction: "none" }}>
-          <AvatarCanvas {...params} home={home} onReady={onReady} />
+          {mode === "3d" ? (
+            <AvatarCanvas {...params} home={home} onReady={onReady} />
+          ) : (
+            <FlatStage params={flat} />
+          )}
         </div>
         <div className="stage-vignette pointer-events-none absolute inset-0" />
-        <button
-          type="button"
-          aria-label="Камера домой"
-          title="Камера домой"
-          onClick={() => setHome((value) => value + 1)}
-          className="home-btn absolute bottom-4 right-4 z-10"
-        >
-          <HomeIcon />
-        </button>
+        {mode === "3d" ? (
+          <button
+            type="button"
+            aria-label="Камера домой"
+            title="Камера домой"
+            onClick={() => setHome((value) => value + 1)}
+            className="home-btn absolute bottom-4 right-4 z-10"
+          >
+            <HomeIcon />
+          </button>
+        ) : null}
         {notice ? (
           <p className="toast pointer-events-none absolute bottom-4 left-4 z-10">{notice}</p>
         ) : null}
       </section>
       <aside className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[380px] md:flex-none md:border-t-0 md:border-l">
-        <ControlsPanel
-          params={params}
-          ready={ready}
-          busy={busy}
-          error={error}
-          onChange={onChange}
-          onRandom={onRandom}
-          onDownloadGlb={onDownloadGlb}
-          onDownloadPng={onDownloadPng}
-          onDownloadPack={onDownloadPack}
-        />
+        <div className="shrink-0 border-b border-[var(--line)] px-4 py-3">
+          <ModeSwitch value={mode} onChange={onMode} />
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {mode === "3d" ? (
+            <ControlsPanel
+              params={params}
+              ready={ready}
+              busy={busy}
+              error={error}
+              onChange={onChange}
+              onRandom={onRandom}
+              onDownloadGlb={onDownloadGlb}
+              onDownloadPng={onDownloadPng}
+              onDownloadPack={onDownloadPack}
+            />
+          ) : (
+            <FlatControls
+              params={flat}
+              busy={busy}
+              error={error}
+              onChange={onFlatChange}
+              onRandom={onFlatRandom}
+              onDownloadSvg={onDownloadFlatSvg}
+              onDownloadPng={onDownloadFlatPng}
+            />
+          )}
+        </div>
       </aside>
     </main>
   );
