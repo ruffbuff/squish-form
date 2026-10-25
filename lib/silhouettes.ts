@@ -54,7 +54,7 @@ function shapeBlob(vertex: THREE.Vector3): THREE.Vector3 {
   const y = dir.y;
   const t = (y + 1) / 2;
   const circle = Math.sqrt(Math.max(0, 1 - y * y));
-  const skewed = Math.sin(Math.PI * Math.pow(t, 0.42));
+  const skewed = Math.sin(Math.PI * Math.pow(t, 0.7));
   const blend = THREE.MathUtils.smoothstep(y, -0.7, 0.2);
   let radius = circle * (1 - blend) + skewed * blend;
   if (y < -0.35) {
@@ -64,7 +64,7 @@ function shapeBlob(vertex: THREE.Vector3): THREE.Vector3 {
   const wobble = fbm(dir.x * 1.7, dir.y * 1.6, dir.z * 1.7);
   radius *= 1 + wobble * 0.022;
   const horizontal = Math.hypot(dir.x, dir.z) || 1;
-  return new THREE.Vector3((dir.x / horizontal) * radius, y * 1.22, (dir.z / horizontal) * radius);
+  return new THREE.Vector3((dir.x / horizontal) * radius, y * 1.18, (dir.z / horizontal) * radius);
 }
 
 /**

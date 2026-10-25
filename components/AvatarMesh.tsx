@@ -133,6 +133,7 @@ export function AvatarMesh({
       new THREE.MeshBasicMaterial({
         color: "#0e0c0a",
         name: "squish-eye",
+        transparent: true,
         depthTest: true,
         depthWrite: false,
         side: THREE.FrontSide,

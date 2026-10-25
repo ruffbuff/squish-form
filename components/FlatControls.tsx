@@ -34,7 +34,7 @@ const MOODS: { id: FlatEyeMood; label: string }[] = [
 ];
 
 const IDLES: { id: FlatIdleId; label: string }[] = [
-  { id: "none", label: "Нет" },
+  { id: "none", label: "Без движения" },
   { id: "breathe", label: "Дыхание" },
   { id: "float", label: "Левитация" },
   { id: "spin", label: "Оборот" },
@@ -200,7 +200,7 @@ export function FlatControls({
         <Slider label="Скорость" value={params.speed} onChange={(speed) => onChange({ speed })} />
         <Slider
           label="Масштаб"
-          display={params.zoom < 0.94 ? "Ближе" : params.zoom > 1.06 ? "Дальше" : "Средне"}
+          display={params.zoom < 0.94 ? "Дальше" : params.zoom > 1.06 ? "Ближе" : "Средне"}
           value={(params.zoom - 0.82) / 0.36}
           onChange={(unit) => onChange({ zoom: 0.82 + unit * 0.36 })}
         />
@@ -210,9 +210,12 @@ export function FlatControls({
           on={params.shadowOn}
           onClick={() => onChange({ shadowOn: !params.shadowOn })}
         />
+      </Field>
+
+      <Field label="Качество">
         <Toggle
           label="FPS"
-          hint="Счётчик на превью"
+          hint="Счётчик на сцене"
           on={showFps}
           onClick={() => onShowFpsChange(!showFps)}
         />

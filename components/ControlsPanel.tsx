@@ -174,7 +174,7 @@ export function ControlsPanel({
 
       <Field label="Край">
         <Slider
-          label="Край"
+          label="Сила"
           display={params.rim < 0.08 ? "Выкл" : params.rim > 0.55 ? "Ярко" : "Мягко"}
           value={params.rim}
           onChange={(rim) => onChange({ rim })}
@@ -199,7 +199,7 @@ export function ControlsPanel({
         />
         <Toggle
           label="FPS"
-          hint="Счётчик на превью"
+          hint="Счётчик на сцене"
           on={showFps}
           onClick={() => onShowFpsChange(!showFps)}
         />

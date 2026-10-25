@@ -15,11 +15,12 @@ export type PlaygroundApi = {
   downloadPack: () => Promise<void>;
 };
 
-const HOME_POSITION: [number, number, number] = [0, 0.22, 4.15];
+const HOME_POSITION: [number, number, number] = [0, 0.22, 4.6];
 const HOME_TARGET: [number, number, number] = [0, 0.02, 0];
 
 type AvatarCanvasProps = AvatarParams & {
   home: number;
+  paused?: boolean;
   onReady: (api: PlaygroundApi | null) => void;
   onFpsSample?: (fps: number) => void;
 };
@@ -29,6 +30,7 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
   return (
     <Canvas
       className="h-full w-full"
+      frameloop={props.paused ? "never" : "always"}
       dpr={[1, tier === 0 ? 1 : tier === 1 ? 1.35 : 1.75]}
       camera={{ position: HOME_POSITION, fov: 32, near: 0.1, far: 40 }}
       gl={{
@@ -96,7 +98,7 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
         dampingFactor={0.08}
         rotateSpeed={0.7}
         minDistance={2.4}
-        maxDistance={7}
+        maxDistance={12}
         target={HOME_TARGET}
       />
     </Canvas>
@@ -114,7 +116,7 @@ function Stage({ backdrop }: { backdrop: AvatarParams["backdrop"] }) {
   const grid = useMemo(() => (backdrop === "grid" ? floorGrid() : null), [backdrop]);
   if (backdrop === "studio" && studio) {
     return (
-      <mesh position={[0, 0.15, -2.6]} renderOrder={-1}>
+      <mesh name="squish-backdrop" position={[0, 0.15, -2.6]} renderOrder={-1}>
         <planeGeometry args={[18, 12]} />
         <meshBasicMaterial map={studio} toneMapped={false} depthWrite={false} />
       </mesh>
@@ -122,7 +124,7 @@ function Stage({ backdrop }: { backdrop: AvatarParams["backdrop"] }) {
   }
   if (backdrop === "grid" && grid) {
     return (
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.08, 0]}>
+      <mesh name="squish-backdrop" rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.08, 0]}>
         <planeGeometry args={[7, 7]} />
         <meshBasicMaterial map={grid} transparent depthWrite={false} toneMapped={false} />
       </mesh>
@@ -181,13 +183,18 @@ function floorGrid() {
 function CameraHome({ home }: { home: number }) {
   const camera = useThree((state) => state.camera);
   const controls = useThree((state) => state.controls) as { target: THREE.Vector3; update: () => void } | null;
+  const size = useThree((state) => state.size);
+  const aspect = size.width / Math.max(size.height, 1);
 
   useEffect(() => {
-    if (!home || !controls) return;
-    camera.position.set(HOME_POSITION[0], HOME_POSITION[1], HOME_POSITION[2]);
+    if (!controls) return;
+    // A portrait stage is narrower than the avatar. Pull the camera back so
+    // wide silhouettes keep a margin instead of being cropped.
+    const distance = HOME_POSITION[2] * THREE.MathUtils.clamp(1 / Math.max(aspect, 0.6), 1, 1.75);
+    camera.position.set(HOME_POSITION[0], HOME_POSITION[1], distance);
     controls.target.set(HOME_TARGET[0], HOME_TARGET[1], HOME_TARGET[2]);
     controls.update();
-  }, [camera, controls, home]);
+  }, [aspect, camera, controls, home]);
 
   return null;
 }

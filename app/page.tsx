@@ -22,6 +22,9 @@ import { randomizeAvatar } from "@/lib/random";
 import type { AvatarParams } from "@/lib/types";
 
 const HISTORY_LIMIT = 10;
+const PARAMS_STORAGE_KEY = "squishform-params-3d";
+const FLAT_STORAGE_KEY = "squishform-params-flat";
+const SCOPE_STORAGE_KEY = "squishform-scopes";
 
 type ParamsHistory3d = {
   id: string;
@@ -84,7 +87,10 @@ export default function Page() {
   const [scopeFlat, setScopeFlat] = useState<RandomScopeFlat>(DEFAULT_RANDOM_SCOPE_FLAT);
   const [history3d, setHistory3d] = useState<ParamsHistory3d[]>([]);
   const [historyFlat, setHistoryFlat] = useState<ParamsHistoryFlat[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const apiRef = useRef<PlaygroundApi | null>(null);
+  const paramsRef = useRef(params);
+  const flatRef = useRef(flat);
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(MODE_STORAGE_KEY);
@@ -93,6 +99,52 @@ export default function Page() {
       /* private browsing */
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      const rawParams = window.localStorage.getItem(PARAMS_STORAGE_KEY);
+      if (rawParams) {
+        const parsed = JSON.parse(rawParams) as Partial<AvatarParams> | null;
+        if (parsed && typeof parsed === "object") setParams((current) => ({ ...current, ...parsed }));
+      }
+      const rawFlat = window.localStorage.getItem(FLAT_STORAGE_KEY);
+      if (rawFlat) {
+        const parsed = JSON.parse(rawFlat) as Partial<FlatParams> | null;
+        if (parsed && typeof parsed === "object") setFlat((current) => ({ ...current, ...parsed }));
+      }
+      const rawScopes = window.localStorage.getItem(SCOPE_STORAGE_KEY);
+      if (rawScopes) {
+        const parsed = JSON.parse(rawScopes) as {
+          scope3d?: Partial<RandomScope3d>;
+          scopeFlat?: Partial<RandomScopeFlat>;
+        } | null;
+        if (parsed?.scope3d) setScope3d((current) => ({ ...current, ...parsed.scope3d }));
+        if (parsed?.scopeFlat) setScopeFlat((current) => ({ ...current, ...parsed.scopeFlat }));
+      }
+    } catch {
+      /* corrupt or unavailable storage */
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    paramsRef.current = params;
+  }, [params]);
+
+  useEffect(() => {
+    flatRef.current = flat;
+  }, [flat]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(PARAMS_STORAGE_KEY, JSON.stringify(params));
+      window.localStorage.setItem(FLAT_STORAGE_KEY, JSON.stringify(flat));
+      window.localStorage.setItem(SCOPE_STORAGE_KEY, JSON.stringify({ scope3d, scopeFlat }));
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, [params, flat, scope3d, scopeFlat, hydrated]);
 
   const onReady = useCallback((api: PlaygroundApi | null) => {
     apiRef.current = api;
@@ -128,17 +180,15 @@ export default function Page() {
   }, []);
 
   const onRandom = useCallback(() => {
-    setParams((current) => {
-      push3dHistory(current);
-      return randomizeAvatar(current, scope3d);
-    });
+    const current = paramsRef.current;
+    setParams(randomizeAvatar(current, scope3d));
+    push3dHistory(current);
   }, [push3dHistory, scope3d]);
 
   const onFlatRandom = useCallback(() => {
-    setFlat((current) => {
-      pushFlatHistory(current);
-      return randomizeFlat(current, scopeFlat);
-    });
+    const current = flatRef.current;
+    setFlat(randomizeFlat(current, scopeFlat));
+    pushFlatHistory(current);
   }, [pushFlatHistory, scopeFlat]);
 
   const onHistory3dPick = useCallback((index: number) => {
@@ -246,13 +296,16 @@ export default function Page() {
             <AvatarCanvas
               {...params}
               home={home}
+              paused={mode !== "3d"}
               onReady={onReady}
               onFpsSample={showFps && mode === "3d" ? setFps3d : undefined}
             />
           </div>
-          <div className={mode === "flat" ? "absolute inset-0" : "absolute inset-0 pointer-events-none invisible"} aria-hidden={mode !== "flat"}>
-            <FlatStage params={flat} onFpsSample={showFps && mode === "flat" ? setFps3d : undefined} />
-          </div>
+          {mode === "flat" ? (
+            <div className="absolute inset-0">
+              <FlatStage params={flat} onFpsSample={showFps ? setFps3d : undefined} />
+            </div>
+          ) : null}
         </div>
         <FpsOverlay active={showFps} sample={() => fps3d} />
         <div className="stage-vignette pointer-events-none absolute inset-0" />
