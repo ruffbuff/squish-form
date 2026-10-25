@@ -12,7 +12,7 @@ export type FlatSilhouetteId =
   | "hex"
   | "cottage";
 
-export type FlatFillId = "flat" | "gloss" | "matte" | "jelly";
+export type FlatFillId = "flat" | "gloss" | "matte" | "jelly" | "duo" | "speckled";
 
 export type FlatEyeStyle = "dots" | "capsules";
 

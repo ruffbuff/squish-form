@@ -1,4 +1,5 @@
 import { MATERIALS } from "./materials";
+import { DEFAULT_RANDOM_SCOPE_3D, type RandomScope3d } from "./randomScopes";
 import { SILHOUETTES } from "./silhouettes";
 import type { AvatarParams, ColorMode, EyeMood, EyeStyle } from "./types";
 
@@ -12,21 +13,24 @@ const PRESETS = ["#40ea34", "#f08a78", "#7ec8ff", "#ffd166", "#e879f9", "#fb7185
  * Leaves light, follow, tap, and motion alone.
  * Eye depth only jitters inside a narrow seated range.
  */
-export function randomizeAvatar(current: AvatarParams): AvatarParams {
-  return {
-    ...current,
-    silhouette: pick(SILHOUETTES).id,
-    color: Math.random() < 0.8 ? pick(PRESETS) : randomHex(),
-    colorB: Math.random() < 0.8 ? pick(PRESETS) : randomHex(),
-    colorMode: pick(MODES),
-    gradientAngle: Math.random(),
-    gradientSoft: Math.random() < 0.75,
-    material: pick(MATERIALS).id,
-    eyes: pick(EYES),
-    mood: pick(MOODS),
-    eyeSize: 0.75 + Math.random() * 0.7,
-    eyeInset: 0.54 + Math.random() * 0.16,
-  };
+export function randomizeAvatar(current: AvatarParams, scope: RandomScope3d = DEFAULT_RANDOM_SCOPE_3D): AvatarParams {
+  const next = { ...current };
+  if (scope.silhouette) next.silhouette = pick(SILHOUETTES).id;
+  if (scope.color) {
+    next.color = Math.random() < 0.8 ? pick(PRESETS) : randomHex();
+    next.colorB = Math.random() < 0.8 ? pick(PRESETS) : randomHex();
+    next.colorMode = pick(MODES);
+    next.gradientAngle = Math.random();
+    next.gradientSoft = Math.random() < 0.75;
+  }
+  if (scope.material) next.material = pick(MATERIALS).id;
+  if (scope.eyes) {
+    next.eyes = pick(EYES);
+    next.mood = pick(MOODS);
+    next.eyeSize = 0.75 + Math.random() * 0.7;
+    next.eyeInset = 0.54 + Math.random() * 0.16;
+  }
+  return next;
 }
 
 function pick<T>(items: readonly T[]): T {

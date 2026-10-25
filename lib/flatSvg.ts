@@ -1,4 +1,5 @@
-import { FLAT_EXPORT_PX, FLAT_VIEW, type FlatEyeMood, type FlatEyeStyle, type FlatParams } from "./flatTypes";
+import { flatEyeOutline } from "./flatEyes";
+import { FLAT_EXPORT_PX, FLAT_VIEW, type FlatParams } from "./flatTypes";
 import { flatSilhouette, projectLocal, type Pt, type SilhouetteGeometry } from "./flatShapes";
 
 export type FlatFrame = "stage" | "icon" | "medal" | "export";
@@ -60,14 +61,17 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _opti
   const shadowSkew = 2.8 * style.shadow;
   const shadowPath = linePath(shape.body.map(([x, y]) => [x + shadowSkew, y + shadowLift]));
   const eyes = eyePaths(shape, params.eyes, params.mood, params.eyeSize);
+  const frameShift = centerShift(shape.body);
   const showGloss = params.fill === "gloss" || params.fill === "jelly";
-  const showShade = params.fill === "matte" || params.fill === "jelly";
+  const showShade = params.fill === "matte" || params.fill === "jelly" || params.fill === "duo" || params.fill === "speckled";
+  const showSpeckle = params.fill === "speckled";
   const glossId = `${safe}-gloss`;
   const hotId = `${safe}-hot`;
   const shadeId = `${safe}-shade`;
   const fillId = `${safe}-fill`;
   const clipId = `${safe}-clip`;
   const blurId = `${safe}-blur`;
+  const speckId = `${safe}-speck`;
   const paint = fillAttrs(params, fillId);
 
   const defs = [
@@ -79,12 +83,14 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _opti
     showGloss ? radial(glossId, "#ffffff", 0.72, 0) : "",
     showGloss ? radial(hotId, "#ffffff", 0.9, 0) : "",
     showShade ? radial(shadeId, "#000000", params.fill === "matte" ? 0.3 : 0.22, 0) : "",
+    showSpeckle ? specklePattern(speckId, paintHex(params.colorB)) : "",
   ].join("");
 
   const overlays = [
     showGloss ? `<path d="${linePath(shape.gloss)}" fill="url(#${glossId})"/>` : "",
     showGloss ? `<path d="${linePath(shape.glossHot)}" fill="url(#${hotId})"/>` : "",
     showShade ? `<path d="${linePath(shape.shade)}" fill="url(#${shadeId})"/>` : "",
+    showSpeckle ? `<rect x="${FLAT_VIEW.x}" y="${FLAT_VIEW.y}" width="${FLAT_VIEW.w}" height="${FLAT_VIEW.h}" fill="url(#${speckId})" opacity="0.42"/>` : "",
   ].join("");
 
   const eyeCenter = projectLocal(0, shape.eyeY);
@@ -93,14 +99,24 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _opti
   return {
     defs,
     shadowDefs: `<filter id="${blurId}" filterUnits="userSpaceOnUse" x="${FLAT_VIEW.x}" y="${FLAT_VIEW.y}" width="${FLAT_VIEW.w}" height="${FLAT_VIEW.h}"><feGaussianBlur stdDeviation="${style.blur}"/></filter>`,
-    bodyDefs: [paint.def, `<clipPath id="${clipId}"><path d="${body}"/></clipPath>`, showGloss ? radial(glossId, "#ffffff", 0.72, 0) : "", showGloss ? radial(hotId, "#ffffff", 0.9, 0) : "", showShade ? radial(shadeId, "#000000", params.fill === "matte" ? 0.3 : 0.22, 0) : ""].join(""),
+    bodyDefs: [
+      paint.def,
+      `<clipPath id="${clipId}"><path d="${body}"/></clipPath>`,
+      showGloss ? radial(glossId, "#ffffff", 0.72, 0) : "",
+      showGloss ? radial(hotId, "#ffffff", 0.9, 0) : "",
+      showShade ? radial(shadeId, "#000000", params.fill === "matte" ? 0.3 : 0.22, 0) : "",
+      showSpeckle ? specklePattern(speckId, paintHex(params.colorB)) : "",
+    ].join(""),
     shadow: params.shadowOn
-      ? `<path d="${shadowPath}" fill="#120c0a" opacity="0.28" filter="url(#${blurId})"/>`
+      ? framed(frameShift, `<path d="${shadowPath}" fill="#120c0a" opacity="0.28" filter="url(#${blurId})"/>`)
       : "",
-    body: `<g clip-path="url(#${clipId})"><path d="${body}" fill="${paint.fill}"/><g>${overlays}</g></g>`,
-    eyes: eyes.map((d) => `<path d="${d}" fill="#0e0c0a"/>`).join(""),
-    motionOrigin: origin(bodyCenter[0], bodyCenter[1]),
-    eyeOrigin: origin(eyeCenter[0], eyeCenter[1]),
+    body: framed(
+      frameShift,
+      `<g clip-path="url(#${clipId})"><path d="${body}" fill="${paint.fill}"/><g>${overlays}</g></g>`,
+    ),
+    eyes: framed(frameShift, eyes.map((d) => `<path d="${d}" fill="#0e0c0a"/>`).join("")),
+    motionOrigin: origin(bodyCenter[0] + frameShift[0], bodyCenter[1] + frameShift[1]),
+    eyeOrigin: origin(eyeCenter[0] + frameShift[0], eyeCenter[1] + frameShift[1]),
   };
 }
 
@@ -127,6 +143,21 @@ function fillAttrs(params: FlatParams, id: string): { fill: string; def: string 
   const secondary = params.colorMode === "gradient" ? paintHex(params.colorB) : primary;
   const gx = Math.round(clamp(params.gradientCenterX, 0, 1) * 100);
   const gy = Math.round(clamp(params.gradientCenterY, 0, 1) * 100);
+  if (params.fill === "duo") {
+    const inner = mix(primary, secondary, 0.38);
+    const edge = mix(secondary, "#000000", 0.12);
+    return {
+      fill: `url(#${id})`,
+      def: `<radialGradient id="${id}" cx="${gx}%" cy="${gy}%" r="82%"><stop offset="0%" stop-color="${mix(primary, "#ffffff", 0.2)}"/><stop offset="42%" stop-color="${inner}"/><stop offset="100%" stop-color="${edge}"/></radialGradient>`,
+    };
+  }
+  if (params.fill === "speckled") {
+    const speck = mix(secondary, "#ffffff", 0.35);
+    return {
+      fill: `url(#${id})`,
+      def: `<radialGradient id="${id}" cx="${gx}%" cy="${gy}%" r="78%"><stop offset="0%" stop-color="${primary}"/><stop offset="55%" stop-color="${mix(primary, speck, 0.35)}"/><stop offset="100%" stop-color="${mix(secondary, "#000000", 0.1)}"/></radialGradient>`,
+    };
+  }
   if (params.fill === "jelly") {
     const top = mix(primary, "#ffffff", 0.34);
     const bottom = params.colorMode === "gradient" ? secondary : mix(secondary, "#000000", 0.16);
@@ -154,78 +185,59 @@ function fillAttrs(params: FlatParams, id: string): { fill: string; def: string 
   return { fill: primary, def: "" };
 }
 
+function specklePattern(id: string, accent: string) {
+  const dots = [
+    [0.18, 0.22, 0.9],
+    [0.42, 0.38, 0.7],
+    [0.66, 0.28, 0.85],
+    [0.32, 0.58, 0.65],
+    [0.58, 0.62, 0.75],
+    [0.74, 0.48, 0.55],
+  ]
+    .map(
+      ([x, y, r]) =>
+        `<circle cx="${Math.round(x * 100)}%" cy="${Math.round(y * 100)}%" r="${r}" fill="${accent}" opacity="0.35"/>`,
+    )
+    .join("");
+  return `<pattern id="${id}" width="100%" height="100%" patternUnits="objectBoundingBox">${dots}</pattern>`;
+}
+
 function radial(id: string, color: string, start: number, end: number) {
   return `<radialGradient id="${id}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${color}" stop-opacity="${start}"/><stop offset="55%" stop-color="${color}" stop-opacity="${(start * 0.35).toFixed(2)}"/><stop offset="100%" stop-color="${color}" stop-opacity="${end}"/></radialGradient>`;
 }
 
-function eyePaths(shape: SilhouetteGeometry, style: FlatEyeStyle, mood: FlatEyeMood, eyeSize: number) {
+function eyePaths(shape: SilhouetteGeometry, style: FlatParams["eyes"], mood: FlatParams["mood"], eyeSize: number) {
   const scale = clamp(eyeSize, 0.55, 1.7) * shape.eyeScale;
-  const left = eyeOutline(-shape.eyeGap, shape.eyeY, style, mood, scale);
-  const right = eyeOutline(shape.eyeGap, shape.eyeY, style, mood, scale);
+  const left = flatEyeOutline(-shape.eyeGap, shape.eyeY, style, mood, scale);
+  const right = flatEyeOutline(shape.eyeGap, shape.eyeY, style, mood, scale);
   return [linePath(left.map(([x, y]) => projectLocal(x, y))), linePath(right.map(([x, y]) => projectLocal(x, y)))];
 }
 
-function eyeOutline(x: number, y: number, style: FlatEyeStyle, mood: FlatEyeMood, scale: number): Pt[] {
-  if (mood === "joy") {
-    const w = (style === "capsules" ? 11.4 : 9.6) * scale;
-    const h = (style === "capsules" ? 10.2 : 8.4) * scale;
-    return crescent(x, y + h * 0.12, w, h);
-  }
-  if (mood === "sleep") {
-    const w = (style === "capsules" ? 10.8 : 9.2) * scale;
-    const h = Math.max(2.2, 2.5 * scale);
-    return ellipsePts(x, y - h * 0.15, w, h, 28);
-  }
-  if (mood === "wow") {
-    const r = (style === "capsules" ? 9.4 : 10.2) * scale;
-    return ellipsePts(x, y, r, r * 1.06, 32);
-  }
-  if (style === "capsules") {
-    return stadiumPts(x, y, 6.2 * scale, 16.4 * scale, 36);
-  }
-  const r = 8.6 * scale;
-  return ellipsePts(x, y, r, r, 32);
+function centerShift(body: Pt[]): Pt {
+  const box = bounds(body);
+  const targetX = FLAT_VIEW.x + FLAT_VIEW.w / 2;
+  const targetY = FLAT_VIEW.y + FLAT_VIEW.h / 2;
+  return [targetX - (box.minX + box.maxX) / 2, targetY - (box.minY + box.maxY) / 2];
 }
 
-function crescent(cx: number, cy: number, w: number, h: number): Pt[] {
-  const n = 14;
-  const pts: Pt[] = [];
-  for (let i = 0; i <= n; i++) {
-    const u = (i / n) * 2 - 1;
-    const arch = 1 - u * u;
-    pts.push([cx + u * w, cy + h * arch]);
+function bounds(pts: Pt[]) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of pts) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
   }
-  for (let i = n; i >= 0; i--) {
-    const u = (i / n) * 2 - 1;
-    const arch = 1 - u * u;
-    pts.push([cx + u * w, cy + h * 0.34 * arch]);
-  }
-  return pts;
+  return { minX, maxX, minY, maxY };
 }
 
-function stadiumPts(cx: number, cy: number, rx: number, ry: number, samples: number): Pt[] {
-  const r = Math.min(rx, ry);
-  const straight = Math.max(0, ry - r);
-  const cap = Math.max(8, Math.floor(samples / 2));
-  const pts: Pt[] = [];
-  for (let i = 0; i < cap; i++) {
-    const angle = (i / cap) * Math.PI;
-    pts.push([cx + Math.cos(angle) * r, cy + straight + Math.sin(angle) * r]);
-  }
-  for (let i = 0; i < cap; i++) {
-    const angle = Math.PI + (i / cap) * Math.PI;
-    pts.push([cx + Math.cos(angle) * r, cy - straight + Math.sin(angle) * r]);
-  }
-  return pts;
-}
-
-function ellipsePts(cx: number, cy: number, rx: number, ry: number, samples: number): Pt[] {
-  const pts: Pt[] = [];
-  for (let i = 0; i < samples; i++) {
-    const angle = (i / samples) * Math.PI * 2;
-    pts.push([cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry]);
-  }
-  return pts;
+function framed(shift: Pt, inner: string) {
+  if (!inner) return "";
+  if (Math.abs(shift[0]) < 0.01 && Math.abs(shift[1]) < 0.01) return inner;
+  return `<g transform="translate(${fmt(shift[0])} ${fmt(shift[1])})">${inner}</g>`;
 }
 
 function linePath(pts: Pt[]) {

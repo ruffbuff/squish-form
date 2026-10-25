@@ -20,21 +20,24 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
 
   return (
     <div className="color-picker">
-      <div className="presets">
-        {PRESETS.map((preset) => (
-          <button
-            key={preset}
-            type="button"
-            aria-label={preset}
-            aria-pressed={preset.toLowerCase() === color.toLowerCase()}
-            onClick={() => onChange(preset)}
-            style={{ background: preset }}
-          />
-        ))}
+      <div className="color-picker__presets-wrap">
+        <p className="color-picker__label">Пресеты</p>
+        <div className="presets">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              aria-label={preset}
+              aria-pressed={preset.toLowerCase() === color.toLowerCase()}
+              onClick={() => onChange(preset)}
+              style={{ background: preset }}
+            />
+          ))}
+        </div>
       </div>
       <div
         ref={pad.ref}
-        className="color-pad relative h-28 w-full cursor-crosshair"
+        className="color-pad relative h-[7.25rem] min-h-[7.25rem] w-full max-w-full cursor-crosshair"
         style={{
           background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv.h} 100% 50%))`,
         }}
@@ -48,7 +51,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
       </div>
       <div
         ref={hue.ref}
-        className="hue-bar relative w-full cursor-ew-resize"
+        className="hue-bar relative mt-0.5 w-full max-w-full cursor-ew-resize"
         style={{ background: "linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
         onPointerDown={hue.onPointerDown}
         onPointerMove={hue.onPointerMove}

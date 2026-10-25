@@ -2,8 +2,11 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { ColorPicker } from "@/components/ColorPicker";
+import { RandomHistory } from "@/components/RandomHistory";
+import { RandomSection } from "@/components/RandomSection";
 import { SegmentControl } from "@/components/SegmentControl";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { RANDOM_SCOPE_LABELS_FLAT, type RandomScopeFlat } from "@/lib/randomScopes";
 import { FLAT_SHOWCASE } from "@/lib/flatShowcase";
 import { FLAT_SILHOUETTES } from "@/lib/flatShapes";
 import { flatSvg } from "@/lib/flatSvg";
@@ -14,6 +17,8 @@ const FILLS: { id: FlatFillId; label: string }[] = [
   { id: "gloss", label: "Блик" },
   { id: "matte", label: "Матовый" },
   { id: "jelly", label: "Желе" },
+  { id: "duo", label: "Дуо" },
+  { id: "speckled", label: "Крошки" },
 ];
 
 const EYES: { id: FlatEyeStyle; label: string }[] = [
@@ -41,12 +46,24 @@ const COLOR_MODES: { id: FlatColorMode; label: string }[] = [
   { id: "gradient", label: "Два цвета" },
 ];
 
+type FlatHistoryItem = {
+  id: string;
+  label: string;
+  thumb: string;
+};
+
 type FlatControlsProps = {
   params: FlatParams;
   busy: boolean;
   error: string | null;
+  randomScopes: RandomScopeFlat;
+  randomHistory: FlatHistoryItem[];
+  showFps: boolean;
   onChange: (patch: Partial<FlatParams>) => void;
   onRandom: () => void;
+  onScopeChange: (key: keyof RandomScopeFlat, enabled: boolean) => void;
+  onHistoryPick: (index: number) => void;
+  onShowFpsChange: (value: boolean) => void;
   onDownloadSvg: () => void;
   onDownloadPng: () => void;
 };
@@ -55,8 +72,14 @@ export function FlatControls({
   params,
   busy,
   error,
+  randomScopes,
+  randomHistory,
+  showFps,
   onChange,
   onRandom,
+  onScopeChange,
+  onHistoryPick,
+  onShowFpsChange,
   onDownloadSvg,
   onDownloadPng,
 }: FlatControlsProps) {
@@ -97,12 +120,16 @@ export function FlatControls({
       <h1 className="sr-only">SquishForm</h1>
       <ThemeToggle />
       <div className="preview-ring">
-        <div className="h-full w-full scale-110 [&_svg]:h-full [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: medal }} />
+        <div className="h-full w-full [&_svg]:h-full [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: medal }} />
       </div>
 
-      <button type="button" onClick={onRandom} className="btn-primary">
-        Случайно
-      </button>
+      <RandomSection
+        onRandom={onRandom}
+        scopes={randomScopes}
+        chips={RANDOM_SCOPE_LABELS_FLAT}
+        onScopeChange={onScopeChange}
+        history={<RandomHistory items={randomHistory} onPick={onHistoryPick} />}
+      />
 
       <Field label="Силуэт">
         <div className="sil-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }} role="group" aria-label="Силуэт">
@@ -182,6 +209,12 @@ export function FlatControls({
           hint="Мягкая под формой"
           on={params.shadowOn}
           onClick={() => onChange({ shadowOn: !params.shadowOn })}
+        />
+        <Toggle
+          label="FPS"
+          hint="Счётчик на превью"
+          on={showFps}
+          onClick={() => onShowFpsChange(!showFps)}
         />
       </Field>
 

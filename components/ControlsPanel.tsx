@@ -3,7 +3,10 @@
 import { useState, type ReactNode } from "react";
 import { AvatarPreview } from "@/components/AvatarPreview";
 import { ColorPicker } from "@/components/ColorPicker";
+import { RandomHistory } from "@/components/RandomHistory";
+import { RandomSection } from "@/components/RandomSection";
 import { SilhouettePicker } from "@/components/SilhouettePicker";
+import { RANDOM_SCOPE_LABELS_3D, type RandomScope3d } from "@/lib/randomScopes";
 import { SegmentControl } from "@/components/SegmentControl";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MATERIALS } from "@/lib/materials";
@@ -48,13 +51,25 @@ const EYES: { id: EyeStyle; label: string }[] = [
 
 const QUALITY_LABEL = ["Низкое", "Среднее", "Высокое"] as const;
 
+type HistoryItem = {
+  id: string;
+  label: string;
+  thumb: string;
+};
+
 type ControlsPanelProps = {
   params: AvatarParams;
   ready: boolean;
   busy: boolean;
   error: string | null;
+  randomScopes: RandomScope3d;
+  randomHistory: HistoryItem[];
+  showFps: boolean;
   onChange: (patch: Partial<AvatarParams>) => void;
   onRandom: () => void;
+  onScopeChange: (key: keyof RandomScope3d, enabled: boolean) => void;
+  onHistoryPick: (index: number) => void;
+  onShowFpsChange: (value: boolean) => void;
   onDownloadGlb: () => void;
   onDownloadPng: () => void;
   onDownloadPack: () => void;
@@ -65,8 +80,14 @@ export function ControlsPanel({
   ready,
   busy,
   error,
+  randomScopes,
+  randomHistory,
+  showFps,
   onChange,
   onRandom,
+  onScopeChange,
+  onHistoryPick,
+  onShowFpsChange,
   onDownloadGlb,
   onDownloadPng,
   onDownloadPack,
@@ -80,9 +101,13 @@ export function ControlsPanel({
       <ThemeToggle />
       <AvatarPreview {...params} />
 
-      <button type="button" onClick={onRandom} className="btn-primary">
-        Случайно
-      </button>
+      <RandomSection
+        onRandom={onRandom}
+        scopes={randomScopes}
+        chips={RANDOM_SCOPE_LABELS_3D}
+        onScopeChange={onScopeChange}
+        history={<RandomHistory items={randomHistory} onPick={onHistoryPick} />}
+      />
 
       <Field label="Силуэт">
         <SilhouettePicker value={params.silhouette} onChange={(silhouette) => onChange({ silhouette })} />
@@ -171,6 +196,12 @@ export function ControlsPanel({
           label={QUALITY_LABEL[qualityTier(params.quality)]}
           value={params.quality}
           onChange={(quality) => onChange({ quality })}
+        />
+        <Toggle
+          label="FPS"
+          hint="Счётчик на превью"
+          on={showFps}
+          onClick={() => onShowFpsChange(!showFps)}
         />
       </Field>
 
