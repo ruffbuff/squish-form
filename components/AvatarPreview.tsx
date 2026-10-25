@@ -61,18 +61,7 @@ export function AvatarPreview(props: AvatarParams) {
   ]);
 
   return (
-    <div
-      style={{
-        width: 128,
-        height: 128,
-        flex: "0 0 128px",
-        margin: "0 auto",
-        borderRadius: 999,
-        overflow: "hidden",
-        border: "1px solid rgba(255,255,255,0.18)",
-        background: "#1a1714",
-      }}
-    >
+    <div className="preview-ring">
       {src ? (
         <img src={src} alt="" width={128} height={128} style={{ display: "block", width: 128, height: 128 }} />
       ) : null}

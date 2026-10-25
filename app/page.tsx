@@ -114,23 +114,21 @@ export default function Page() {
         <div className="absolute inset-0" style={{ touchAction: "none" }}>
           <AvatarCanvas {...params} home={home} onReady={onReady} />
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_58%,rgba(0,0,0,0.28)_100%)]" />
+        <div className="stage-vignette pointer-events-none absolute inset-0" />
         <button
           type="button"
           aria-label="Камера домой"
           title="Камера домой"
           onClick={() => setHome((value) => value + 1)}
-          className="absolute bottom-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#1c1a17]/90 text-[#f6f1ea] shadow-lg"
+          className="home-btn absolute bottom-4 right-4 z-10"
         >
           <HomeIcon />
         </button>
         {notice ? (
-          <p className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-full bg-[#f4efe8] px-3 py-1.5 text-sm font-medium text-[#1a1613]">
-            {notice}
-          </p>
+          <p className="toast pointer-events-none absolute bottom-4 left-4 z-10">{notice}</p>
         ) : null}
       </section>
-      <aside className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[380px] md:flex-none md:border-t-0 md:border-l">
+      <aside className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[380px] md:flex-none md:border-t-0 md:border-l">
         <ControlsPanel
           params={params}
           ready={ready}

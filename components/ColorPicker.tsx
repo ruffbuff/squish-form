@@ -20,25 +20,21 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="presets">
         {PRESETS.map((preset) => (
           <button
             key={preset}
             type="button"
             aria-label={preset}
+            aria-pressed={preset.toLowerCase() === color.toLowerCase()}
             onClick={() => onChange(preset)}
-            className="h-7 w-7 rounded-full border border-white/15"
-            style={{
-              background: preset,
-              outline: preset.toLowerCase() === color.toLowerCase() ? "2px solid #f4efe8" : "none",
-              outlineOffset: 2,
-            }}
+            style={{ background: preset }}
           />
         ))}
       </div>
       <div
         ref={pad.ref}
-        className="color-pad relative h-32 w-full cursor-crosshair rounded-2xl"
+        className="color-pad relative h-28 w-full cursor-crosshair"
         style={{
           background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv.h} 100% 50%))`,
         }}
@@ -52,7 +48,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
       </div>
       <div
         ref={hue.ref}
-        className="color-pad relative h-3.5 w-full cursor-ew-resize rounded-full"
+        className="hue-bar relative w-full cursor-ew-resize"
         style={{ background: "linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
         onPointerDown={hue.onPointerDown}
         onPointerMove={hue.onPointerMove}
@@ -63,7 +59,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
         />
       </div>
       <div className="flex items-center gap-3">
-        <span className="h-9 w-9 shrink-0 rounded-full border border-white/15" style={{ background: color }} />
+        <span className="swatch-lg" style={{ background: color }} />
         <HexField color={color} onChange={onChange} />
       </div>
     </div>
@@ -90,7 +86,7 @@ function HexField({ color, onChange }: { color: string; onChange: (color: string
         if (valid) onChange(valid);
       }}
       onBlur={() => setDraft(color)}
-      className="w-full rounded-2xl border border-[var(--line)] bg-white/5 px-3 py-2 font-mono text-sm uppercase tracking-wide outline-none focus-visible:border-white/30"
+      className="hex-input"
     />
   );
 }
