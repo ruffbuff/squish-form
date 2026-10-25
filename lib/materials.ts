@@ -14,6 +14,9 @@ export const MATERIALS: { id: MaterialId; label: string }[] = [
   { id: "clay", label: "Глина" },
   { id: "gloss", label: "Глянец" },
   { id: "pearl", label: "Перламутр" },
+  { id: "ceramic", label: "Керамика" },
+  { id: "velvet", label: "Бархат" },
+  { id: "soap", label: "Мыло" },
 ];
 
 const CLAY_SIZE = 128;
@@ -81,6 +84,48 @@ export function createAvatarMaterial(id: MaterialId, hex: string, finish: Materi
     material.specularIntensity = 0.9;
     material.envMapIntensity = 1.15;
     applyRim(material, finish.rim);
+    return material;
+  }
+
+  if (id === "ceramic") {
+    material.roughness = 0.22;
+    material.clearcoat = 0.95;
+    material.clearcoatRoughness = 0.12;
+    material.specularIntensity = 0.95;
+    material.envMapIntensity = 1.05;
+    material.sheen = 0.12;
+    material.sheenRoughness = 0.4;
+    material.sheenColor = new THREE.Color("#fffaf6");
+    applyRim(material, finish.rim * 0.85);
+    return material;
+  }
+
+  if (id === "velvet") {
+    material.roughness = 0.92;
+    material.sheen = 1;
+    material.sheenRoughness = 0.78;
+    material.sheenColor = tint.clone().lerp(new THREE.Color("#2a1f24"), 0.35);
+    material.specularIntensity = 0.35;
+    material.clearcoat = 0.02;
+    material.envMapIntensity = 0.48;
+    applyRim(material, finish.rim * 0.55);
+    return material;
+  }
+
+  if (id === "soap") {
+    const foam = tint.clone().lerp(new THREE.Color("#ffffff"), 0.62);
+    material.roughness = 0.38;
+    material.transmission = 0.42;
+    material.thickness = 0.85;
+    material.ior = 1.22;
+    material.attenuationColor = foam;
+    material.attenuationDistance = 1.1;
+    material.clearcoat = 0.55;
+    material.clearcoatRoughness = 0.22;
+    material.specularIntensity = 0.72;
+    material.envMapIntensity = 0.95;
+    material.transparent = true;
+    applyRim(material, finish.rim * 0.7);
     return material;
   }
 

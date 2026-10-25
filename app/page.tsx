@@ -7,11 +7,35 @@ import { ControlsPanel } from "@/components/ControlsPanel";
 import { FlatControls } from "@/components/FlatControls";
 import { FlatStage } from "@/components/FlatStage";
 import { ModeSwitch } from "@/components/ModeSwitch";
+import { FpsOverlay } from "@/components/FpsOverlay";
 import { downloadFlatPng, downloadFlatSvg } from "@/lib/flatExport";
 import { randomizeFlat } from "@/lib/flatRandom";
+import { thumbFor3d, thumbForFlat } from "@/lib/historyThumb";
 import { FLAT_INITIAL, MODE_STORAGE_KEY, type FlatParams, type PlayMode } from "@/lib/flatTypes";
+import {
+  DEFAULT_RANDOM_SCOPE_3D,
+  DEFAULT_RANDOM_SCOPE_FLAT,
+  type RandomScope3d,
+  type RandomScopeFlat,
+} from "@/lib/randomScopes";
 import { randomizeAvatar } from "@/lib/random";
 import type { AvatarParams } from "@/lib/types";
+
+const HISTORY_LIMIT = 10;
+
+type ParamsHistory3d = {
+  id: string;
+  label: string;
+  thumb: string;
+  params: AvatarParams;
+};
+
+type ParamsHistoryFlat = {
+  id: string;
+  label: string;
+  thumb: string;
+  params: FlatParams;
+};
 
 const AvatarCanvas = dynamic(() => import("@/components/AvatarCanvas"), {
   ssr: false,
@@ -54,8 +78,13 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const [home, setHome] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  const [showFps, setShowFps] = useState(false);
+  const [fps3d, setFps3d] = useState(60);
+  const [scope3d, setScope3d] = useState<RandomScope3d>(DEFAULT_RANDOM_SCOPE_3D);
+  const [scopeFlat, setScopeFlat] = useState<RandomScopeFlat>(DEFAULT_RANDOM_SCOPE_FLAT);
+  const [history3d, setHistory3d] = useState<ParamsHistory3d[]>([]);
+  const [historyFlat, setHistoryFlat] = useState<ParamsHistoryFlat[]>([]);
   const apiRef = useRef<PlaygroundApi | null>(null);
-
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(MODE_STORAGE_KEY);
@@ -78,12 +107,54 @@ export default function Page() {
     setFlat((current) => ({ ...current, ...patch }));
   }, []);
 
-  const onRandom = useCallback(() => {
-    setParams((current) => randomizeAvatar(current));
+  const push3dHistory = useCallback((snapshot: AvatarParams) => {
+    const entry: ParamsHistory3d = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      label: "Случайная 3D",
+      thumb: thumbFor3d(snapshot),
+      params: snapshot,
+    };
+    setHistory3d((items) => [entry, ...items].slice(0, HISTORY_LIMIT));
   }, []);
 
+  const pushFlatHistory = useCallback((snapshot: FlatParams) => {
+    const entry: ParamsHistoryFlat = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      label: "Случайная Flat",
+      thumb: thumbForFlat(snapshot),
+      params: snapshot,
+    };
+    setHistoryFlat((items) => [entry, ...items].slice(0, HISTORY_LIMIT));
+  }, []);
+
+  const onRandom = useCallback(() => {
+    setParams((current) => {
+      push3dHistory(current);
+      return randomizeAvatar(current, scope3d);
+    });
+  }, [push3dHistory, scope3d]);
+
   const onFlatRandom = useCallback(() => {
-    setFlat((current) => randomizeFlat(current));
+    setFlat((current) => {
+      pushFlatHistory(current);
+      return randomizeFlat(current, scopeFlat);
+    });
+  }, [pushFlatHistory, scopeFlat]);
+
+  const onHistory3dPick = useCallback((index: number) => {
+    setHistory3d((items) => {
+      const picked = items[index];
+      if (picked) setParams(picked.params);
+      return items;
+    });
+  }, []);
+
+  const onHistoryFlatPick = useCallback((index: number) => {
+    setHistoryFlat((items) => {
+      const picked = items[index];
+      if (picked) setFlat(picked.params);
+      return items;
+    });
   }, []);
 
   const onMode = useCallback((next: PlayMode) => {
@@ -171,12 +242,19 @@ export default function Page() {
     <main className="flex h-dvh flex-col bg-[var(--bg)] md:flex-row">
       <section className="relative h-[58dvh] shrink-0 md:h-auto md:min-h-0 md:flex-1">
         <div className="absolute inset-0" style={{ touchAction: "none" }}>
-          {mode === "3d" ? (
-            <AvatarCanvas {...params} home={home} onReady={onReady} />
-          ) : (
-            <FlatStage params={flat} />
-          )}
+          <div className={mode === "3d" ? "absolute inset-0" : "absolute inset-0 pointer-events-none invisible"} aria-hidden={mode !== "3d"}>
+            <AvatarCanvas
+              {...params}
+              home={home}
+              onReady={onReady}
+              onFpsSample={showFps && mode === "3d" ? setFps3d : undefined}
+            />
+          </div>
+          <div className={mode === "flat" ? "absolute inset-0" : "absolute inset-0 pointer-events-none invisible"} aria-hidden={mode !== "flat"}>
+            <FlatStage params={flat} onFpsSample={showFps && mode === "flat" ? setFps3d : undefined} />
+          </div>
         </div>
+        <FpsOverlay active={showFps} sample={() => fps3d} />
         <div className="stage-vignette pointer-events-none absolute inset-0" />
         {mode === "3d" ? (
           <button
@@ -204,8 +282,14 @@ export default function Page() {
               ready={ready}
               busy={busy}
               error={error}
+              randomScopes={scope3d}
+              randomHistory={history3d}
+              showFps={showFps}
               onChange={onChange}
               onRandom={onRandom}
+              onScopeChange={(key, enabled) => setScope3d((current) => ({ ...current, [key]: enabled }))}
+              onHistoryPick={onHistory3dPick}
+              onShowFpsChange={setShowFps}
               onDownloadGlb={onDownloadGlb}
               onDownloadPng={onDownloadPng}
               onDownloadPack={onDownloadPack}
@@ -215,8 +299,14 @@ export default function Page() {
               params={flat}
               busy={busy}
               error={error}
+              randomScopes={scopeFlat}
+              randomHistory={historyFlat}
+              showFps={showFps}
               onChange={onFlatChange}
               onRandom={onFlatRandom}
+              onScopeChange={(key, enabled) => setScopeFlat((current) => ({ ...current, [key]: enabled }))}
+              onHistoryPick={onHistoryFlatPick}
+              onShowFpsChange={setShowFps}
               onDownloadSvg={onDownloadFlatSvg}
               onDownloadPng={onDownloadFlatPng}
             />

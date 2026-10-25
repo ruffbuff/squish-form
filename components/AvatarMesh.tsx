@@ -112,16 +112,20 @@ export function AvatarMesh({
     paintGradient(next, colorMode, color, colorB, gradientAngle * Math.PI * 2, gradientSoft);
     return next;
   }, [silhouette, surface, colorMode, color, colorB, gradientAngle, gradientSoft]);
-  const surfaceMaterial = useMemo(
-    () =>
-      createAvatarMaterial(material, color, {
-        flat: surface === "poly",
-        vertexColors: true,
-        secondary: colorB,
-        rim,
-      }),
-    [material, color, colorB, surface, rim],
-  );
+  const surfaceMaterial = useMemo(() => {
+    const mat = createAvatarMaterial(material, color, {
+      flat: surface === "poly",
+      vertexColors: true,
+      secondary: colorB,
+      rim,
+    });
+    if (surface === "poly") {
+      mat.polygonOffset = true;
+      mat.polygonOffsetFactor = 2;
+      mat.polygonOffsetUnits = 2;
+    }
+    return mat;
+  }, [material, color, colorB, surface, rim]);
   const anchors = useMemo(() => placeEyesOnSilhouette(silhouette), [silhouette]);
   const eyeGeometry = useMemo(() => new THREE.SphereGeometry(1, 18, 14), []);
   const eyeMaterial = useMemo(
@@ -130,10 +134,8 @@ export function AvatarMesh({
         color: "#0e0c0a",
         name: "squish-eye",
         depthTest: true,
-        depthWrite: true,
-        polygonOffset: true,
-        polygonOffsetFactor: -6,
-        polygonOffsetUnits: -6,
+        depthWrite: false,
+        side: THREE.FrontSide,
       }),
     [],
   );
@@ -200,11 +202,13 @@ export function AvatarMesh({
 
   const radius = anchors.radius * eyeSize;
   const moodShape = eyeMoodShape(mood, eyes === "ovals");
-  const protrusion = eyeProtrusion(eyeInset, anchors.sink);
+  const polyTuck = surface === "poly" ? 0.08 : 0;
+  const protrusion = eyeProtrusion(eyeInset, anchors.sink + polyTuck);
+  const depthScale = surface === "poly" ? 0.86 : 1;
   const restScale: [number, number, number] = [
     radius * moodShape.sx,
     radius * moodShape.sy,
-    radius * moodShape.sz,
+    radius * moodShape.sz * depthScale,
   ];
   const bases = anchors.eyes.map((anchor) =>
     seatEyePosition(anchor, restScale[2], protrusion, radius * moodShape.lift),
@@ -275,6 +279,14 @@ export function AvatarMesh({
     current.rotation.set(pitch, REST_YAW + yaw, roll);
     current.position.y = REST_Y + bob;
 
+    const floorPad = 0.08;
+    const floorY = -1.12 + floorPad;
+    current.updateWorldMatrix(true, true);
+    const bounds = new THREE.Box3().setFromObject(current);
+    if (bounds.min.y < floorY) {
+      current.position.y += floorY - bounds.min.y;
+    }
+
     const damp = follow ? 0.4 : 1;
     const motion = eyeMoodMotion(mood, time, damp);
     const open = mood === "calm" ? calmBlink(blink.current, time, delta, damp) : 1;
@@ -340,6 +352,7 @@ export function AvatarMesh({
         material={surfaceMaterial}
         castShadow={false}
         receiveShadow={false}
+        renderOrder={0}
         onPointerDown={pressDown}
         onPointerOver={() => {
           document.body.style.cursor = tap ? "pointer" : "";
@@ -354,7 +367,7 @@ export function AvatarMesh({
           name="squish-eye"
           geometry={eyeGeometry}
           material={eyeMaterial}
-          renderOrder={12}
+          renderOrder={3}
           rotation={[0, 0, eyeTilt(moodShape, index)]}
           userData={{
             eyeIndex: index,

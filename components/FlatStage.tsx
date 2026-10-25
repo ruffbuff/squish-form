@@ -1,20 +1,40 @@
 "use client";
 
-import { useId, useMemo, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, type CSSProperties } from "react";
 import { flatLayers } from "@/lib/flatSvg";
 import type { FlatParams } from "@/lib/flatTypes";
 
 type FlatStageProps = {
   params: FlatParams;
+  onFpsSample?: (fps: number) => void;
 };
 
-export function FlatStage({ params }: FlatStageProps) {
+export function FlatStage({ params, onFpsSample }: FlatStageProps) {
   const reactId = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const layers = useMemo(() => flatLayers(params, `live${reactId}`), [params, reactId]);
+  const layerKey = `${params.silhouette}|${params.color}|${params.colorB}|${params.colorMode}|${params.fill}|${params.eyes}|${params.mood}|${params.eyeSize}|${params.shadowOn}|${params.gradientCenterX}|${params.gradientCenterY}`;
+  const layers = useMemo(() => flatLayers(params, `live${reactId}`), [layerKey, reactId, params]);
   const motion = motionClass(params.idle);
   const shade = shadeClass(params.idle);
   const eyes = moodEyeClass(params.mood);
   const zoom = clamp(params.zoom, 0.82, 1.18);
+
+  useEffect(() => {
+    if (!onFpsSample) return;
+    let frames = 0;
+    let last = performance.now();
+    let id = 0;
+    const tick = (now: number) => {
+      frames += 1;
+      if (now - last >= 500) {
+        onFpsSample(Math.round(frames / ((now - last) / 1000)));
+        frames = 0;
+        last = now;
+      }
+      id = requestAnimationFrame(tick);
+    };
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, [onFpsSample]);
 
   return (
     <div className="flat-stage flex h-full w-full items-center justify-center">

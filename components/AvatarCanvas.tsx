@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { captureAvatarPng, exportAvatarGlb, exportProjectPack } from "@/lib/export";
 import { qualityTier, type AvatarParams } from "@/lib/types";
 import { AvatarMesh } from "./AvatarMesh";
-import { SoftShadow } from "./SoftShadow";
+import { ContactShadow } from "./ContactShadow";
 
 export type PlaygroundApi = {
   downloadGlb: () => Promise<void>;
@@ -21,6 +21,7 @@ const HOME_TARGET: [number, number, number] = [0, 0.02, 0];
 type AvatarCanvasProps = AvatarParams & {
   home: number;
   onReady: (api: PlaygroundApi | null) => void;
+  onFpsSample?: (fps: number) => void;
 };
 
 export default function AvatarCanvas(props: AvatarCanvasProps) {
@@ -73,7 +74,10 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
         follow={props.follow}
         tap={props.tap}
       />
-      {tier > 0 && props.shadowOn ? <SoftShadow /> : null}
+      {tier > 0 && props.shadowOn ? (
+        <ContactShadow idle={props.idle} speed={props.speed} smoothness={props.smoothness} />
+      ) : null}
+      {props.onFpsSample ? <FpsReporter onSample={props.onFpsSample} /> : null}
       <QualityBinder quality={props.quality} />
       <CameraHome home={props.home} />
       <ExportBinder
@@ -222,6 +226,24 @@ function StudioEnvironment() {
       <Lightformer form="circle" intensity={1.2} position={[0.2, -2.6, 1.4]} scale={[3.5, 3.5, 1]} color="#ffffff" />
     </Environment>
   );
+}
+
+function FpsReporter({ onSample }: { onSample: (fps: number) => void }) {
+  const frames = useRef(0);
+  const last = useRef(performance.now());
+
+  useFrame((_, delta) => {
+    frames.current += 1;
+    const now = performance.now();
+    if (now - last.current >= 500) {
+      onSample(Math.round(frames.current / ((now - last.current) / 1000)));
+      frames.current = 0;
+      last.current = now;
+    }
+    void delta;
+  });
+
+  return null;
 }
 
 function ExportBinder({

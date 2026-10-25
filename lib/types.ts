@@ -1,6 +1,6 @@
 export type SilhouetteId = "blob" | "bean" | "squircle" | "pear" | "pill" | "bun" | "mochi" | "bud";
 
-export type MaterialId = "matte" | "jelly" | "clay" | "gloss" | "pearl";
+export type MaterialId = "matte" | "jelly" | "clay" | "gloss" | "pearl" | "ceramic" | "velvet" | "soap";
 
 export type IdleId = "none" | "breathe" | "sway" | "bounce" | "spin" | "float";
 
