@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Глина",
-  description: "Playground мягких 3D-форм: капля, боб и сквиркл.",
+  description: "Playground мягких 3D-форм: силуэты, глаза, материалы и экспорт.",
 };
 
 export const viewport: Viewport = {

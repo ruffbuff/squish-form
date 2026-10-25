@@ -5,6 +5,8 @@ export const MATERIALS: { id: MaterialId; label: string }[] = [
   { id: "matte", label: "Матовый" },
   { id: "jelly", label: "Желе" },
   { id: "clay", label: "Глина" },
+  { id: "gloss", label: "Глянец" },
+  { id: "pearl", label: "Перламутр" },
 ];
 
 const CLAY_SIZE = 128;
@@ -15,7 +17,7 @@ export function createAvatarMaterial(id: MaterialId, hex: string) {
   const material = new THREE.MeshPhysicalMaterial({
     color,
     metalness: 0,
-    name: `glina-${id}`,
+    name: `squish-${id}`,
   });
 
   if (id === "matte") {
@@ -41,6 +43,30 @@ export function createAvatarMaterial(id: MaterialId, hex: string) {
     material.envMapIntensity = 1.25;
     material.transparent = true;
     material.opacity = 1;
+    return material;
+  }
+
+  if (id === "gloss") {
+    material.roughness = 0.28;
+    material.clearcoat = 0.9;
+    material.clearcoatRoughness = 0.16;
+    material.specularIntensity = 0.85;
+    material.envMapIntensity = 1.1;
+    return material;
+  }
+
+  if (id === "pearl") {
+    material.roughness = 0.16;
+    material.iridescence = 1;
+    material.iridescenceIOR = 1.35;
+    material.iridescenceThicknessRange = [90, 420];
+    material.clearcoat = 0.6;
+    material.clearcoatRoughness = 0.1;
+    material.sheen = 0.65;
+    material.sheenRoughness = 0.35;
+    material.sheenColor = color.clone().lerp(new THREE.Color("#ffffff"), 0.55);
+    material.specularIntensity = 0.9;
+    material.envMapIntensity = 1.15;
     return material;
   }
 

@@ -15,31 +15,51 @@ export function fileStamp(date = new Date()) {
   ].join("");
 }
 
-export function glinaFilename(kind: "glb" | "png", silhouette: SilhouetteId, date = new Date()) {
-  return `glina-${silhouette}-${fileStamp(date)}.${kind}`;
+export function squishFilename(kind: "glb" | "png", silhouette: SilhouetteId, date = new Date()) {
+  return `squish-${silhouette}-${fileStamp(date)}.${kind}`;
 }
 
-export async function exportAvatarGlb(mesh: THREE.Mesh, silhouette: SilhouetteId) {
+export async function exportAvatarGlb(root: THREE.Object3D, silhouette: SilhouetteId) {
   const exporter = new GLTFExporter();
-  const sourceMaterial = mesh.material as THREE.MeshPhysicalMaterial;
-  const material = sourceMaterial.clone();
-  if (sourceMaterial.bumpMap) {
-    material.bumpMap = sourceMaterial.bumpMap.clone();
-    material.bumpMap.needsUpdate = true;
-  }
-  const exportMesh = new THREE.Mesh(mesh.geometry.clone(), material);
-  exportMesh.name = "glina";
-  exportMesh.position.set(0, 0, 0);
-  exportMesh.rotation.set(0, 0, 0);
-  exportMesh.scale.set(1, 1, 1);
+  const clone = root.clone(true);
+  clone.name = "squish";
+  clone.position.set(0, 0, 0);
+  clone.rotation.set(0, 0, 0);
+  clone.scale.set(1, 1, 1);
 
-  const result = await exporter.parseAsync(exportMesh, { binary: true });
-  exportMesh.geometry.dispose();
-  material.bumpMap?.dispose();
-  material.dispose();
+  clone.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (object.name === "squish-pupil") {
+      object.position.x = 0;
+      object.position.y = 0;
+    }
+    if (object.name === "squish-eye") {
+      const rest = object.userData.restScale as [number, number, number] | undefined;
+      if (rest) object.scale.set(rest[0], rest[1], rest[2]);
+    }
+    if (!mesh.isMesh) return;
+    mesh.geometry = mesh.geometry.clone();
+    const source = mesh.material as THREE.MeshPhysicalMaterial;
+    const material = source.clone();
+    if (source.bumpMap) {
+      material.bumpMap = source.bumpMap.clone();
+      material.bumpMap.needsUpdate = true;
+    }
+    mesh.material = material;
+  });
+
+  const result = await exporter.parseAsync(clone, { binary: true });
+  clone.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.geometry.dispose();
+    const material = mesh.material as THREE.MeshPhysicalMaterial;
+    material.bumpMap?.dispose();
+    material.dispose();
+  });
   const bytes = result instanceof ArrayBuffer ? result : new TextEncoder().encode(JSON.stringify(result));
   const blob = new Blob([bytes], { type: "model/gltf-binary" });
-  downloadBlob(blob, glinaFilename("glb", silhouette));
+  downloadBlob(blob, squishFilename("glb", silhouette));
 }
 
 export function captureAvatarPng(
@@ -62,7 +82,7 @@ export function captureAvatarPng(
   gl.setClearColor(previousColor, previousAlpha);
   gl.render(scene, camera);
 
-  downloadDataUrl(dataUrl, glinaFilename("png", silhouette));
+  downloadDataUrl(dataUrl, squishFilename("png", silhouette));
 }
 
 function downloadBlob(blob: Blob, filename: string) {

@@ -45,30 +45,14 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
-.color-swatch {
-  width: 2.75rem;
-  height: 2.75rem;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: transparent;
-  overflow: hidden;
+.color-pad {
+  touch-action: none;
+}
+
+.squish-range {
+  width: 100%;
+  accent-color: #f4efe8;
   cursor: pointer;
-  flex: none;
-}
-
-.color-swatch::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.color-swatch::-webkit-color-swatch {
-  border: none;
-  border-radius: 999px;
-}
-
-.color-swatch::-moz-color-swatch {
-  border: none;
-  border-radius: 999px;
 }
 
 .download {

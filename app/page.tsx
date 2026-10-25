@@ -15,6 +15,10 @@ const INITIAL: AvatarParams = {
   color: "#f08a78",
   material: "jelly",
   idle: "both",
+  eyes: "dots",
+  light: 0.72,
+  quality: 1,
+  follow: false,
 };
 
 export default function Page() {
@@ -66,7 +70,7 @@ export default function Page() {
         </div>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_42%,rgba(0,0,0,0.38)_100%)]" />
       </section>
-      <aside className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[340px] md:flex-none md:border-t-0 md:border-l">
+      <aside className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[360px] md:flex-none md:border-t-0 md:border-l">
         <ControlsPanel
           params={params}
           ready={ready}
