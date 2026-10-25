@@ -13,6 +13,8 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
   const reactId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const layerKey = `${params.silhouette}|${params.color}|${params.colorB}|${params.colorMode}|${params.fill}|${params.eyes}|${params.mood}|${params.eyeSize}|${params.shadowOn}|${params.gradientCenterX}|${params.gradientCenterY}`;
   const layers = useMemo(() => flatLayers(params, `live${reactId}`), [layerKey, reactId, params]);
+  // A separate prefix keeps gradient/filter ids unique on the back face.
+  const backLayers = useMemo(() => flatLayers(params, `back${reactId}`), [layerKey, reactId, params]);
   const motion = motionClass(params.idle);
   const shade = shadeClass(params.idle);
   const eyes = moodEyeClass(params.mood);
@@ -47,6 +49,7 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
           {
             "--squish-flat-dur": layers.duration,
             transform: `scale(${zoom})`,
+            perspective: "1250px",
           } as CSSProperties
         }
       >
@@ -57,13 +60,26 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
             dangerouslySetInnerHTML={{ __html: layers.shadow }}
           />
         ) : null}
-        <div className={`absolute inset-0 ${motion}`} style={{ transformOrigin: layers.motionOrigin }}>
-          <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: layers.body }} />
-          <div
-            className={`absolute inset-0 ${eyes}`}
-            style={{ transformOrigin: layers.eyeOrigin }}
-            dangerouslySetInnerHTML={{ __html: layers.eyes }}
-          />
+        {params.idle === "spin" ? (
+          <div className="squish-flat-edge absolute inset-0" aria-hidden="true">
+            <div dangerouslySetInnerHTML={{ __html: backLayers.body }} />
+          </div>
+        ) : null}
+        <div
+          className={`squish-flat-card absolute inset-0 ${motion}`}
+          style={{ transformOrigin: layers.motionOrigin }}
+        >
+          <div className="squish-flat-face squish-flat-face--front">
+            <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: layers.body }} />
+            <div
+              className={`absolute inset-0 ${eyes}`}
+              style={{ transformOrigin: layers.eyeOrigin }}
+              dangerouslySetInnerHTML={{ __html: layers.eyes }}
+            />
+          </div>
+          <div className="squish-flat-face squish-flat-face--back" aria-hidden="true">
+            <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: backLayers.body }} />
+          </div>
         </div>
       </div>
     </div>
@@ -101,6 +117,45 @@ function clamp(value: number, min: number, max: number) {
 function FlatMotionStyle() {
   return (
     <style>{`
+      .squish-flat-card,
+      .squish-flat-face {
+        transform-style: preserve-3d;
+      }
+      .squish-flat-card {
+        will-change: transform;
+        backface-visibility: visible;
+      }
+      .squish-flat-face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+      }
+      .squish-flat-face--back {
+        transform: rotateY(180deg);
+        filter: brightness(0.88) saturate(0.94);
+      }
+      .squish-flat-edge {
+        opacity: 0;
+        pointer-events: none;
+        animation: squish-flat-edge var(--squish-flat-dur, 3.2s) linear infinite;
+      }
+      .squish-flat-edge > div {
+        height: 100%;
+        width: 100%;
+        transform: scaleX(0.062);
+        transform-origin: 50% 50%;
+        filter: brightness(0.78) saturate(0.94);
+      }
+      .squish-flat-edge svg { display: block; height: 100%; width: 100%; }
+      @keyframes squish-flat-edge {
+        0%, 21% { opacity: 0; }
+        24% { opacity: 0.92; }
+        27% { opacity: 0.92; }
+        30%, 70% { opacity: 0; }
+        73% { opacity: 0.92; }
+        76% { opacity: 0.92; }
+        79%, 100% { opacity: 0; }
+      }
       .squish-flat-breathe,
       .squish-flat-float,
       .squish-flat-spin,
@@ -119,7 +174,7 @@ function FlatMotionStyle() {
       }
       .squish-flat-breathe { animation-name: squish-flat-breathe; }
       .squish-flat-float { animation-name: squish-flat-float; }
-      .squish-flat-spin { animation-name: squish-flat-spin; }
+      .squish-flat-spin { animation-name: squish-flat-spin; animation-timing-function: linear; }
       .squish-flat-bounce { animation-name: squish-flat-bounce; }
       .squish-flat-shade-breathe { animation-name: squish-flat-shade-breathe; }
       .squish-flat-shade-float { animation-name: squish-flat-shade-float; }
@@ -131,37 +186,40 @@ function FlatMotionStyle() {
       .squish-flat-wow-eyes { animation-duration: calc(var(--squish-flat-dur, 3.2s) * 0.72); animation-name: squish-flat-wow-eyes; }
       .absolute > svg { display: block; width: 100%; height: 100%; }
       @keyframes squish-flat-breathe {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.06); }
+        0%, 100% { transform: rotateX(0deg) scale3d(1, 1, 1); }
+        50% { transform: rotateX(-4deg) translateZ(10px) scale3d(1.05, 1.08, 1); }
       }
       @keyframes squish-flat-float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-28px); }
+        0%, 100% { transform: translate3d(0, 0, 0) rotateX(1.5deg) rotateZ(-1.2deg); }
+        50% { transform: translate3d(0, -26px, 22px) rotateX(-4deg) rotateZ(1.2deg); }
       }
       @keyframes squish-flat-spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        0% { transform: rotateX(-7deg) rotateY(0deg); }
+        100% { transform: rotateX(-7deg) rotateY(360deg); }
       }
       @keyframes squish-flat-bounce {
-        0%, 100% { transform: translateY(0) scale(1, 1); }
-        35% { transform: translateY(-36px) scale(0.96, 1.05); }
-        55% { transform: translateY(-8px) scale(1.02, 0.98); }
+        0%, 100% { transform: translate3d(0, 0, 0) rotateX(-2deg) scale3d(1, 1, 1); }
+        30% { transform: translate3d(0, -14px, 8px) rotateX(-9deg) scale3d(0.97, 1.07, 1); }
+        46% { transform: translate3d(0, 0, 0) rotateX(2deg) scale3d(1.09, 0.9, 1); }
+        62% { transform: translate3d(0, -20px, 12px) rotateX(-6deg) scale3d(0.99, 1.03, 1); }
       }
       @keyframes squish-flat-shade-breathe {
         0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.03); opacity: 0.85; }
+        50% { transform: scale(1.04); opacity: 0.82; }
       }
       @keyframes squish-flat-shade-float {
         0%, 100% { transform: scaleX(1); opacity: 0.9; }
-        50% { transform: scaleX(0.82); opacity: 0.5; }
+        50% { transform: translateY(10px) scaleX(0.8); opacity: 0.45; }
       }
       @keyframes squish-flat-shade-spin {
-        from { transform: rotate(0deg) scale(0.96); }
-        to { transform: rotate(360deg) scale(0.96); }
+        0%, 100% { transform: rotate(-4deg) scale(0.98); opacity: 0.85; }
+        25% { transform: rotate(0deg) scaleX(0.72); opacity: 0.65; }
+        50% { transform: rotate(4deg) scale(0.98); opacity: 0.85; }
+        75% { transform: rotate(0deg) scaleX(0.72); opacity: 0.65; }
       }
       @keyframes squish-flat-shade-bounce {
         0%, 100% { transform: scale(1); opacity: 0.85; }
-        35% { transform: scale(0.88, 0.92) translateY(6px); opacity: 0.55; }
+        35% { transform: scale(0.88, 0.92) translateY(6px); opacity: 0.5; }
       }
       @keyframes squish-flat-blink {
         0%, 82%, 100% { transform: scaleY(1); }
@@ -192,7 +250,8 @@ function FlatMotionStyle() {
         .squish-flat-blink,
         .squish-flat-joy-eyes,
         .squish-flat-sleep-eyes,
-        .squish-flat-wow-eyes { animation: none; }
+        .squish-flat-wow-eyes,
+        .squish-flat-edge { animation: none; }
       }
     `}</style>
   );

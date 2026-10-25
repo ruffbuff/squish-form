@@ -9,6 +9,7 @@ import {
   eyeMoodMotion,
   eyeMoodShape,
   eyeProtrusion,
+  eyeQuaternion,
   eyeTilt,
   placeEyesOnSilhouette,
   seatEyePosition,
@@ -104,6 +105,7 @@ export function AvatarMesh({
     x: new THREE.Vector3(),
     y: new THREE.Vector3(),
     target: new THREE.Vector3(),
+    quaternion: new THREE.Quaternion(),
   });
   const gl = useThree((state) => state.gl);
 
@@ -137,6 +139,33 @@ export function AvatarMesh({
         depthTest: true,
         depthWrite: false,
         side: THREE.FrontSide,
+        // Only draw where the body silhouette was stamped into the stencil.
+        // Without this, a proud eye peels off the outline at grazing angles.
+        stencilWrite: true,
+        stencilRef: 1,
+        stencilFunc: THREE.EqualStencilFunc,
+        stencilFail: THREE.KeepStencilOp,
+        stencilZFail: THREE.KeepStencilOp,
+        stencilZPass: THREE.KeepStencilOp,
+      }),
+    [],
+  );
+  // Invisible silhouette stamp. It runs before the body and eyes, writes no
+  // color or depth, and clips the eyes to the avatar's projected outline.
+  const silhouetteMask = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        colorWrite: false,
+        depthWrite: false,
+        depthTest: false,
+        name: "squish-eye-mask",
+        side: THREE.FrontSide,
+        stencilWrite: true,
+        stencilRef: 1,
+        stencilFunc: THREE.AlwaysStencilFunc,
+        stencilFail: THREE.KeepStencilOp,
+        stencilZFail: THREE.KeepStencilOp,
+        stencilZPass: THREE.ReplaceStencilOp,
       }),
     [],
   );
@@ -203,8 +232,9 @@ export function AvatarMesh({
 
   const radius = anchors.radius * eyeSize;
   const moodShape = eyeMoodShape(mood, eyes === "ovals");
-  const polyTuck = surface === "poly" ? 0.08 : 0;
-  const protrusion = eyeProtrusion(eyeInset, anchors.sink + polyTuck);
+  // Poly surfaces sit a little further forward than the smooth hull.
+  const polyLift = surface === "poly" ? 0.14 : 0;
+  const protrusion = eyeProtrusion(eyeInset, anchors.sink) + polyLift;
   const depthScale = surface === "poly" ? 0.86 : 1;
   const restScale: [number, number, number] = [
     radius * moodShape.sx,
@@ -327,7 +357,8 @@ export function AvatarMesh({
         Math.max(restScale[1] * motion.scaleY * open, radius * 0.07),
         restScale[2] * motion.scaleZ,
       );
-      eye.rotation.z = eyeTilt(moodShape, index);
+      eye.rotation.z = 0;
+      eye.quaternion.copy(eyeQuaternion(anchor, eyeTilt(moodShape, index), slide.quaternion));
       eye.userData.restScale = restScale;
       eye.userData.restPosition = [base.x, base.y, base.z];
     });
@@ -347,6 +378,14 @@ export function AvatarMesh({
 
   return (
     <group ref={rig} name="squish-avatar" position={[0, REST_Y, 0]} rotation={[0, REST_YAW, 0]}>
+      <mesh
+        name="squish-eye-mask"
+        geometry={geometry}
+        material={silhouetteMask}
+        renderOrder={-2}
+        castShadow={false}
+        receiveShadow={false}
+      />
       <mesh
         name="squish-body"
         geometry={geometry}

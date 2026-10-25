@@ -91,7 +91,7 @@ function shapePear(vertex: THREE.Vector3): THREE.Vector3 {
   const dir = vertex.clone().normalize();
   const y = dir.y;
   const round = Math.sqrt(Math.max(0, 1 - y * y));
-  const belly = 1 + 0.34 * THREE.MathUtils.smoothstep(y, 0.15, -0.8);
+  const belly = 1 + 0.34 * (1 - THREE.MathUtils.smoothstep(y, -0.8, 0.15));
   const neck = 1 - 0.4 * THREE.MathUtils.smoothstep(y, -0.02, 0.62);
   const radius = round * belly * neck;
   const horizontal = Math.hypot(dir.x, dir.z) || 1;
@@ -139,11 +139,14 @@ function shapeBud(vertex: THREE.Vector3): THREE.Vector3 {
   const dir = vertex.clone().normalize();
   const y = dir.y;
   const t = (y + 1) / 2;
-  const bell = Math.sin(Math.PI * Math.pow(t, 0.78));
-  let radius = bell * 0.62;
-  if (y < -0.15) {
-    const cap = Math.sqrt(Math.max(0, 1 - ((y + 0.1) / 0.95) ** 2));
-    radius = Math.max(radius, cap * 0.78);
+  const bell = Math.sin(Math.PI * Math.pow(t, 0.78)) * 0.62;
+  let radius = bell;
+  if (y < 0.05) {
+    const cap = Math.sqrt(Math.max(0, 1 - ((y + 0.1) / 0.95) ** 2)) * 0.78;
+    // Blend the round base into the bell instead of taking a hard max:
+    // a max leaves a horizontal collar that cuts across the eyes.
+    const blend = THREE.MathUtils.smoothstep(y, -0.55, 0.05);
+    radius = THREE.MathUtils.lerp(cap, bell, blend);
   }
   if (y > 0.35) {
     const tip = 1 - (y - 0.35) / 0.65;

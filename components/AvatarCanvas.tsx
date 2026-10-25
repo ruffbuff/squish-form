@@ -37,6 +37,7 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
         antialias: true,
         alpha: true,
         premultipliedAlpha: true,
+        stencil: true,
         powerPreference: "high-performance",
       }}
       onCreated={({ gl, scene }) => {
