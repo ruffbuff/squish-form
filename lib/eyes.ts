@@ -47,7 +47,8 @@ export const EYE_INSET_DEFAULT = 0.62;
 export function eyeProtrusion(inset: number, sink: number) {
   const t = THREE.MathUtils.clamp(inset, 0, 1);
   // 0 is a dome on the skin. 1 leaves a shallow cap. Default is seated.
-  return THREE.MathUtils.lerp(0.05, -0.58, t) - sink;
+  // Curved silhouettes bury the eye a little, but never enough to clip it.
+  return THREE.MathUtils.lerp(0.45, -0.3, t) - sink * 0.15;
 }
 
 type EyeLayout = { y: number; spread: number; sink: number };
@@ -64,7 +65,7 @@ const LAYOUT: Record<SilhouetteId, EyeLayout> = {
   pill: { y: 0.02, spread: 0.16, sink: 0.0 },
   bun: { y: 0.06, spread: 0.15, sink: 0.02 },
   mochi: { y: 0.04, spread: 0.18, sink: 0.0 },
-  bud: { y: -0.02, spread: 0.15, sink: 0.08 },
+  bud: { y: 0.13, spread: 0.14, sink: 0.02 },
 };
 
 /** Scale factors on top of the eye-size radius. The still pose has to read with no motion. */
@@ -157,14 +158,31 @@ export function eyeTilt(shape: EyeMoodShape, index: number) {
  * Seated center, before look-around and mood bob.
  * `depth` is how far this eye extends forward (its Z half-extent).
  * `protrusion` is a fraction of that depth, and `lift` is world units on Y.
- * Depth moves straight along the form's front axis. Sliding along a tilted
- * surface normal pushes the eyes off the cheek.
+ * Offset along the local surface normal so a turned silhouette does not
+ * swallow one eye while leaving the other proud.
  */
 export function seatEyePosition(anchor: EyeAnchor, depth: number, protrusion: number, lift: number) {
-  const position = anchor.point.clone();
-  position.z += depth * protrusion;
+  const position = anchor.point.clone().addScaledVector(anchor.normal, depth * protrusion);
   position.y += lift;
   return position;
+}
+
+const FORWARD = new THREE.Vector3(0, 0, 1);
+const alignScratch = new THREE.Quaternion();
+const tiltScratch = new THREE.Quaternion();
+const facingScratch = new THREE.Vector3();
+
+/**
+ * Eye local +Z follows the skin, but only partway. Fully following a rim
+ * normal turns the eye broadside at the silhouette edge, where it reads as a
+ * detached black oval. Keeping it mostly forward makes it edge-on there and
+ * only slightly proud of the outline.
+ */
+export function eyeQuaternion(anchor: EyeAnchor, tilt: number, target = new THREE.Quaternion()) {
+  facingScratch.copy(anchor.normal).multiplyScalar(0.45).addScaledVector(FORWARD, 0.7).normalize();
+  alignScratch.setFromUnitVectors(FORWARD, facingScratch);
+  tiltScratch.setFromAxisAngle(facingScratch, tilt);
+  return target.copy(tiltScratch).multiply(alignScratch);
 }
 
 /**

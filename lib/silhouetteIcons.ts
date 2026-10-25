@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { EYE_INSET_DEFAULT, eyeMoodShape, eyeProtrusion, eyeTilt, placeEyes, seatEyePosition } from "./eyes";
+import { EYE_INSET_DEFAULT, eyeMoodShape, eyeProtrusion, eyeQuaternion, eyeTilt, placeEyes, seatEyePosition } from "./eyes";
 import { createAvatarMaterial, type MaterialFinish } from "./materials";
 import { createSilhouetteGeometry, SILHOUETTES } from "./silhouettes";
 import type { MaterialId, SilhouetteId } from "./types";
@@ -66,7 +66,7 @@ export function renderSilhouetteIcons() {
         const depth = radius * shape.sz;
         eye.position.copy(seatEyePosition(anchor, depth, protrusion, radius * shape.lift));
         eye.scale.set(radius * shape.sx, radius * shape.sy, radius * shape.sz);
-        eye.rotation.z = eyeTilt(shape, index);
+        eye.quaternion.copy(eyeQuaternion(anchor, eyeTilt(shape, index)));
         body.add(eye);
       });
       scene.add(body);

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { eyeMoodShape, eyeProtrusion, eyeTilt, placeEyesOnSilhouette, seatEyePosition } from "./eyes";
+import { eyeMoodShape, eyeProtrusion, eyeQuaternion, eyeTilt, placeEyesOnSilhouette, seatEyePosition } from "./eyes";
 import { paintGradient } from "./gradient";
 import { createAvatarMaterial } from "./materials";
 import { createSilhouetteGeometry } from "./silhouettes";
@@ -55,7 +55,7 @@ export function renderAvatarStill(params: StillShot) {
     const depth = radius * mood.sz;
     eye.position.copy(seatEyePosition(anchor, depth, protrusion, radius * mood.lift));
     eye.scale.set(radius * mood.sx, radius * mood.sy, depth);
-    eye.rotation.z = eyeTilt(mood, index);
+    eye.quaternion.copy(eyeQuaternion(anchor, eyeTilt(mood, index)));
     body.add(eye);
   });
   stage.add(body);
