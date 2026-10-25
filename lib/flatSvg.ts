@@ -11,10 +11,10 @@ type FrameStyle = {
 };
 
 const FRAMES: Record<FlatFrame, FrameStyle> = {
-  stage: { blur: 6.5, shadow: 1.05, width: "100%", height: "100%" },
-  icon: { blur: 2.2, shadow: 0.7, width: "100%", height: "100%" },
-  medal: { blur: 3.2, shadow: 0.85, width: "100%", height: "100%" },
-  export: { blur: 6.5, shadow: 1.05, width: String(FLAT_EXPORT_PX.w), height: String(FLAT_EXPORT_PX.h) },
+  stage: { blur: 4.2, shadow: 0.85, width: "100%", height: "100%" },
+  icon: { blur: 1.8, shadow: 0.55, width: "100%", height: "100%" },
+  medal: { blur: 3.2, shadow: 0.75, width: "100%", height: "100%" },
+  export: { blur: 4.2, shadow: 0.85, width: String(FLAT_EXPORT_PX.w), height: String(FLAT_EXPORT_PX.h) },
 };
 
 export type FlatLayers = {
@@ -28,8 +28,15 @@ export type FlatLayers = {
   label: string;
 };
 
-export function flatSvg(params: FlatParams, frame: FlatFrame, prefix: string) {
-  const parts = renderParts(params, frame, prefix);
+export type FlatRenderOptions = {
+  /** Silhouette grid thumbs use a neutral palette so shape reads without the live color. */
+  neutralThumb?: boolean;
+  /** Playground export framing ignores zoom; stage honors it. */
+  ignoreZoom?: boolean;
+};
+
+export function flatSvg(params: FlatParams, frame: FlatFrame, prefix: string, options?: FlatRenderOptions) {
+  const parts = renderParts(params, frame, prefix, options);
   return wrap(parts.defs, parts.shadow + parts.body + parts.eyes, frame, false, labelFor(params));
 }
 
@@ -46,12 +53,23 @@ export function flatLayers(params: FlatParams, prefix: string): FlatLayers {
   };
 }
 
-function renderParts(params: FlatParams, frame: FlatFrame, prefix: string) {
+function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, options?: FlatRenderOptions) {
+  const paintParams = options?.neutralThumb
+    ? {
+        ...params,
+        color: "#c9bbae",
+        colorB: "#a19386",
+        colorMode: "solid" as const,
+        fill: "matte" as const,
+      }
+    : params;
   const shape = flatSilhouette(params.silhouette);
   const style = FRAMES[frame];
   const safe = prefix.replace(/[^a-zA-Z0-9_-]/g, "") || "flat";
   const body = linePath(shape.body);
-  const shadow = linePath(shape.body.map(([x, y]) => [x + 10 * style.shadow, y + 16 * style.shadow]));
+  const shadowLift = 5.5 * style.shadow;
+  const shadowSkew = 2.8 * style.shadow;
+  const shadowPath = linePath(shape.body.map(([x, y]) => [x + shadowSkew, y + shadowLift]));
   const eyes = eyePaths(shape, params.eyes, params.mood, params.eyeSize);
   const showGloss = params.fill === "gloss" || params.fill === "jelly";
   const showShade = params.fill === "matte" || params.fill === "jelly";
@@ -61,7 +79,7 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string) {
   const fillId = `${safe}-fill`;
   const clipId = `${safe}-clip`;
   const blurId = `${safe}-blur`;
-  const paint = fillAttrs(params, fillId);
+  const paint = fillAttrs(paintParams, fillId);
 
   const defs = [
     `<filter id="${blurId}" filterUnits="userSpaceOnUse" x="${FLAT_VIEW.x}" y="${FLAT_VIEW.y}" width="${FLAT_VIEW.w}" height="${FLAT_VIEW.h}">`,
@@ -87,7 +105,9 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string) {
     defs,
     shadowDefs: `<filter id="${blurId}" filterUnits="userSpaceOnUse" x="${FLAT_VIEW.x}" y="${FLAT_VIEW.y}" width="${FLAT_VIEW.w}" height="${FLAT_VIEW.h}"><feGaussianBlur stdDeviation="${style.blur}"/></filter>`,
     bodyDefs: [paint.def, `<clipPath id="${clipId}"><path d="${body}"/></clipPath>`, showGloss ? radial(glossId, "#ffffff", 0.72, 0) : "", showGloss ? radial(hotId, "#ffffff", 0.9, 0) : "", showShade ? radial(shadeId, "#000000", params.fill === "matte" ? 0.3 : 0.22, 0) : ""].join(""),
-    shadow: `<path d="${shadow}" fill="#140e0c" opacity="0.5" filter="url(#${blurId})"/>`,
+    shadow: params.shadowOn
+      ? `<path d="${shadowPath}" fill="#120c0a" opacity="0.28" filter="url(#${blurId})"/>`
+      : "",
     body: `<g clip-path="url(#${clipId})"><path d="${body}" fill="${paint.fill}"/><g>${overlays}</g></g>`,
     eyes: eyes.map((d) => `<path d="${d}" fill="#0e0c0a"/>`).join(""),
     motionOrigin: origin(bodyCenter[0], bodyCenter[1]),
@@ -116,26 +136,30 @@ function labelFor(params: FlatParams) {
 function fillAttrs(params: FlatParams, id: string): { fill: string; def: string } {
   const primary = paintHex(params.color);
   const secondary = params.colorMode === "gradient" ? paintHex(params.colorB) : primary;
+  const gx = Math.round(clamp(params.gradientCenterX, 0, 1) * 100);
+  const gy = Math.round(clamp(params.gradientCenterY, 0, 1) * 100);
   if (params.fill === "jelly") {
     const top = mix(primary, "#ffffff", 0.34);
     const bottom = params.colorMode === "gradient" ? secondary : mix(secondary, "#000000", 0.16);
     return {
       fill: `url(#${id})`,
-      def: `<radialGradient id="${id}" cx="40%" cy="32%" r="76%"><stop offset="0%" stop-color="${top}"/><stop offset="48%" stop-color="${primary}"/><stop offset="100%" stop-color="${bottom}"/></radialGradient>`,
+      def: `<radialGradient id="${id}" cx="${gx}%" cy="${gy}%" r="76%"><stop offset="0%" stop-color="${top}"/><stop offset="48%" stop-color="${primary}"/><stop offset="100%" stop-color="${bottom}"/></radialGradient>`,
     };
   }
   if (params.fill === "matte") {
     const bottom = mix(secondary, "#000000", 0.2);
     return {
       fill: `url(#${id})`,
-      def: `<linearGradient id="${id}" x1="0" y1="0" x2="0.15" y2="1"><stop offset="0%" stop-color="${primary}"/><stop offset="100%" stop-color="${bottom}"/></linearGradient>`,
+      def: `<linearGradient id="${id}" x1="${gx}%" y1="${gy}%" x2="${gx + 8}%" y2="${gy + 72}%"><stop offset="0%" stop-color="${primary}"/><stop offset="100%" stop-color="${bottom}"/></linearGradient>`,
     };
   }
   if (params.colorMode === "gradient") {
     const top = params.fill === "gloss" ? mix(primary, "#ffffff", 0.08) : primary;
+    const x2 = clamp(params.gradientCenterX + 0.48, 0, 1);
+    const y2 = clamp(params.gradientCenterY + 0.55, 0, 1);
     return {
       fill: `url(#${id})`,
-      def: `<linearGradient id="${id}" x1="0.1" y1="0" x2="0.9" y2="1"><stop offset="0%" stop-color="${top}"/><stop offset="100%" stop-color="${secondary}"/></linearGradient>`,
+      def: `<linearGradient id="${id}" x1="${gx}%" y1="${gy}%" x2="${Math.round(x2 * 100)}%" y2="${Math.round(y2 * 100)}%"><stop offset="0%" stop-color="${top}"/><stop offset="100%" stop-color="${secondary}"/></linearGradient>`,
     };
   }
   return { fill: primary, def: "" };
@@ -154,14 +178,14 @@ function eyePaths(shape: SilhouetteGeometry, style: FlatEyeStyle, mood: FlatEyeM
 
 function eyeOutline(x: number, y: number, style: FlatEyeStyle, mood: FlatEyeMood, scale: number): Pt[] {
   if (mood === "joy") {
-    const w = (style === "capsules" ? 10.2 : 8.8) * scale;
-    const h = (style === "capsules" ? 9 : 7.6) * scale;
-    return crescent(x, y + h * 0.1, w, h);
+    const w = (style === "capsules" ? 11.4 : 9.6) * scale;
+    const h = (style === "capsules" ? 10.2 : 8.4) * scale;
+    return crescent(x, y + h * 0.12, w, h);
   }
   if (mood === "sleep") {
-    const w = (style === "capsules" ? 10 : 8.6) * scale;
-    const h = Math.max(2.6, 3.1 * scale);
-    return ellipsePts(x, y, w, h, 28);
+    const w = (style === "capsules" ? 10.8 : 9.2) * scale;
+    const h = Math.max(2.2, 2.5 * scale);
+    return ellipsePts(x, y - h * 0.15, w, h, 28);
   }
   if (mood === "wow") {
     const r = (style === "capsules" ? 9.4 : 10.2) * scale;

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { eyeMoodShape, eyeProtrusion, eyeTilt, placeEyes, seatEyePosition } from "./eyes";
+import { eyeMoodShape, eyeProtrusion, eyeTilt, placeEyesOnSilhouette, seatEyePosition } from "./eyes";
 import { paintGradient } from "./gradient";
 import { createAvatarMaterial } from "./materials";
 import { createSilhouetteGeometry } from "./silhouettes";
@@ -26,7 +26,7 @@ let renderer: THREE.WebGLRenderer | null = null;
 let scene: THREE.Scene | null = null;
 let camera: THREE.PerspectiveCamera | null = null;
 const eyeGeometry = new THREE.SphereGeometry(1, 16, 12);
-const eyeMaterial = new THREE.MeshStandardMaterial({ color: "#100e0c", roughness: 0.35 });
+const eyeMaterial = new THREE.MeshBasicMaterial({ color: "#0e0c0a" });
 
 /** One frozen frame of the current avatar, for the circular sidebar preview. */
 export function renderAvatarStill(params: StillShot) {
@@ -45,7 +45,7 @@ export function renderAvatarStill(params: StillShot) {
   });
   const body = new THREE.Mesh(geometry, material);
   body.rotation.y = 0.38;
-  const anchors = placeEyes(geometry, params.silhouette);
+  const anchors = placeEyesOnSilhouette(params.silhouette);
   const radius = anchors.radius * params.eyeSize;
   const mood = eyeMoodShape(params.mood, params.eyes === "ovals");
   const protrusion = eyeProtrusion(params.eyeInset, anchors.sink);

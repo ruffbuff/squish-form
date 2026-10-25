@@ -18,7 +18,7 @@ export type FlatEyeStyle = "dots" | "capsules";
 
 export type FlatEyeMood = "calm" | "joy" | "sleep" | "wow";
 
-export type FlatIdleId = "none" | "breathe" | "float";
+export type FlatIdleId = "none" | "breathe" | "float" | "spin" | "bounce";
 
 export type FlatColorMode = "solid" | "gradient";
 
@@ -35,6 +35,12 @@ export type FlatParams = {
   idle: FlatIdleId;
   /** 0–1 playback rate for breathe, float, and the calm blink. */
   speed: number;
+  /** 0–1 gradient focal point for two-color fills. */
+  gradientCenterX: number;
+  gradientCenterY: number;
+  /** 0.82–1.18 viewport scale in the playground. Export uses 1. */
+  zoom: number;
+  shadowOn: boolean;
 };
 
 export type PlayMode = "3d" | "flat";
@@ -52,6 +58,10 @@ export const FLAT_INITIAL: FlatParams = {
   eyeSize: 1,
   idle: "breathe",
   speed: 0.5,
+  gradientCenterX: 0.42,
+  gradientCenterY: 0.32,
+  zoom: 1,
+  shadowOn: true,
 };
 
 /** viewBox origin plus size. cx/cy are the SVG position of the local origin. */

@@ -40,6 +40,7 @@ const INITIAL: AvatarParams = {
   lightY: 0.62,
   lightIntensity: 0.7,
   quality: 1,
+  shadowOn: true,
   follow: false,
   tap: true,
 };

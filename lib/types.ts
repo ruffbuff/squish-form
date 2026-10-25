@@ -49,6 +49,8 @@ export type AvatarParams = {
   lightIntensity: number;
   /** 0–1 mesh density, pixel ratio, and contact shadow. */
   quality: number;
+  /** Contact shadow under the avatar in the viewport. */
+  shadowOn: boolean;
   follow: boolean;
   tap: boolean;
 };

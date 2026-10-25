@@ -10,7 +10,7 @@ import {
   eyeMoodShape,
   eyeProtrusion,
   eyeTilt,
-  placeEyes,
+  placeEyesOnSilhouette,
   seatEyePosition,
 } from "@/lib/eyes";
 import { paintGradient } from "@/lib/gradient";
@@ -122,18 +122,18 @@ export function AvatarMesh({
       }),
     [material, color, colorB, surface, rim],
   );
-  const anchors = useMemo(() => placeEyes(geometry, silhouette), [geometry, silhouette]);
+  const anchors = useMemo(() => placeEyesOnSilhouette(silhouette), [silhouette]);
   const eyeGeometry = useMemo(() => new THREE.SphereGeometry(1, 18, 14), []);
   const eyeMaterial = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({
-        color: "#100e0c",
-        roughness: 0.4,
-        metalness: 0,
+      new THREE.MeshBasicMaterial({
+        color: "#0e0c0a",
         name: "squish-eye",
+        depthTest: true,
+        depthWrite: true,
         polygonOffset: true,
-        polygonOffsetFactor: -2,
-        polygonOffsetUnits: -2,
+        polygonOffsetFactor: -6,
+        polygonOffsetUnits: -6,
       }),
     [],
   );
@@ -354,6 +354,7 @@ export function AvatarMesh({
           name="squish-eye"
           geometry={eyeGeometry}
           material={eyeMaterial}
+          renderOrder={12}
           rotation={[0, 0, eyeTilt(moodShape, index)]}
           userData={{
             eyeIndex: index,

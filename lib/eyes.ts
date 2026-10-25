@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createSilhouetteGeometry } from "./silhouettes";
 import type { EyeMood, SilhouetteId } from "./types";
 
 export type EyeAnchor = {
@@ -70,13 +71,13 @@ const LAYOUT: Record<SilhouetteId, EyeLayout> = {
 export function eyeMoodShape(mood: EyeMood, oval: boolean): EyeMoodShape {
   if (mood === "joy") {
     return oval
-      ? { sx: 1.72, sy: 0.4, sz: 0.72, lift: 0.12, tilt: 0.62 }
-      : { sx: 1.38, sy: 0.32, sz: 0.66, lift: 0.14, tilt: 0.7 };
+      ? { sx: 1.82, sy: 0.34, sz: 0.7, lift: 0.16, tilt: 0.78 }
+      : { sx: 1.48, sy: 0.28, sz: 0.64, lift: 0.18, tilt: 0.82 };
   }
   if (mood === "sleep") {
     return oval
-      ? { sx: 1.62, sy: 0.16, sz: 0.48, lift: -0.22, tilt: -0.28 }
-      : { sx: 1.22, sy: 0.14, sz: 0.46, lift: -0.2, tilt: -0.34 };
+      ? { sx: 1.68, sy: 0.12, sz: 0.44, lift: -0.26, tilt: -0.38 }
+      : { sx: 1.28, sy: 0.1, sz: 0.42, lift: -0.24, tilt: -0.44 };
   }
   if (mood === "wow") {
     return oval
@@ -171,6 +172,14 @@ export function seatEyePosition(anchor: EyeAnchor, depth: number, protrusion: nu
  * A ray along -Z used to land on the brow, and the old offset then
  * pushed a full sphere out along that tilted normal.
  */
+/** Eye anchors from the smooth hull so poly facets do not shove eyes sideways. */
+export function placeEyesOnSilhouette(id: SilhouetteId): PlacedEyes {
+  const smooth = createSilhouetteGeometry(id, "smooth");
+  const placed = placeEyes(smooth, id);
+  smooth.dispose();
+  return placed;
+}
+
 export function placeEyes(geometry: THREE.BufferGeometry, id: SilhouetteId): PlacedEyes {
   geometry.computeBoundingBox();
   geometry.computeVertexNormals();
@@ -196,9 +205,9 @@ export function placeEyes(geometry: THREE.BufferGeometry, id: SilhouetteId): Pla
       normal.fromBufferAttribute(normals, i);
       if (normal.z < minFacing) continue;
       vertex.fromBufferAttribute(position, i);
-      const dx = (vertex.x - x) / Math.max(size.x * 0.32, 0.18);
-      const dy = (vertex.y - y) / Math.max(size.y * 0.14, 0.1);
-      const score = normal.z * 1.4 - dx * dx * 1.7 - dy * dy * 3.1 + vertex.z * 0.12;
+      const dx = (vertex.x - x) / Math.max(size.x * 0.22, 0.14);
+      const dy = (vertex.y - y) / Math.max(size.y * 0.12, 0.09);
+      const score = normal.z * 2.1 - dx * dx * 2.4 - dy * dy * 4.2 + vertex.z * 0.08;
       if (score > best) {
         best = score;
         point = vertex.clone();
