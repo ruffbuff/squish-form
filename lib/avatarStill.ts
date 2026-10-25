@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { eyeMoodShape, eyeProtrusion, eyeTilt, placeEyesOnSilhouette, seatEyePosition } from "./eyes";
 import { paintGradient } from "./gradient";
 import { createAvatarMaterial } from "./materials";
@@ -85,6 +86,11 @@ function ensureScene() {
     const fill = new THREE.DirectionalLight("#d7e4ff", 0.45);
     fill.position.set(-3, 1.4, 2);
     scene.add(fill);
+    const gl = ensureRenderer();
+    const pmrem = new THREE.PMREMGenerator(gl);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environmentIntensity = 0.85;
+    pmrem.dispose();
   }
   return scene;
 }

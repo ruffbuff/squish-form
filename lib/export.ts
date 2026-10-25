@@ -96,6 +96,15 @@ export function captureAvatarPng(
   const previousBackground = scene.background;
   const previousAlpha = gl.getClearAlpha();
   const previousColor = gl.getClearColor(new THREE.Color());
+  const hidden: THREE.Object3D[] = [];
+
+  scene.traverse((object) => {
+    if (!object.visible) return;
+    if (object.name === "squish-backdrop" || object.name === "squish-shadow") {
+      object.visible = false;
+      hidden.push(object);
+    }
+  });
 
   scene.background = null;
   gl.setClearColor(0x000000, 0);
@@ -103,6 +112,7 @@ export function captureAvatarPng(
 
   const dataUrl = gl.domElement.toDataURL("image/png");
 
+  for (const object of hidden) object.visible = true;
   scene.background = previousBackground;
   gl.setClearColor(previousColor, previousAlpha);
   gl.render(scene, camera);
