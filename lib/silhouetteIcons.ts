@@ -63,7 +63,8 @@ export function renderSilhouetteIcons() {
       const protrusion = eyeProtrusion(EYE_INSET_DEFAULT, anchors.sink);
       anchors.eyes.forEach((anchor, index) => {
         const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        eye.position.copy(seatEyePosition(anchor, radius, protrusion, shape.lift));
+        const depth = radius * shape.sz;
+        eye.position.copy(seatEyePosition(anchor, depth, protrusion, radius * shape.lift));
         eye.scale.set(radius * shape.sx, radius * shape.sy, radius * shape.sz);
         eye.rotation.z = eyeTilt(shape, index);
         body.add(eye);

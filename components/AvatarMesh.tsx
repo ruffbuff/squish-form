@@ -206,7 +206,9 @@ export function AvatarMesh({
     radius * moodShape.sy,
     radius * moodShape.sz,
   ];
-  const bases = anchors.eyes.map((anchor) => seatEyePosition(anchor, radius, protrusion, moodShape.lift));
+  const bases = anchors.eyes.map((anchor) =>
+    seatEyePosition(anchor, restScale[2], protrusion, radius * moodShape.lift),
+  );
 
   useLayoutEffect(() => {
     if (seated.current) return;

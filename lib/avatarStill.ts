@@ -51,8 +51,9 @@ export function renderAvatarStill(params: StillShot) {
   const protrusion = eyeProtrusion(params.eyeInset, anchors.sink);
   anchors.eyes.forEach((anchor, index) => {
     const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    eye.position.copy(seatEyePosition(anchor, radius, protrusion, mood.lift));
-    eye.scale.set(radius * mood.sx, radius * mood.sy, radius * mood.sz);
+    const depth = radius * mood.sz;
+    eye.position.copy(seatEyePosition(anchor, depth, protrusion, radius * mood.lift));
+    eye.scale.set(radius * mood.sx, radius * mood.sy, depth);
     eye.rotation.z = eyeTilt(mood, index);
     body.add(eye);
   });
