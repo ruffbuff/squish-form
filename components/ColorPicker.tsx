@@ -19,7 +19,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
   });
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="color-picker">
       <div className="presets">
         {PRESETS.map((preset) => (
           <button
@@ -58,7 +58,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
           style={{ left: `${(hsv.h / 360) * 100}%`, background: `hsl(${hsv.h} 90% 55%)` }}
         />
       </div>
-      <div className="flex items-center gap-3">
+      <div className="color-picker-footer">
         <span className="swatch-lg" style={{ background: color }} />
         <HexField color={color} onChange={onChange} />
       </div>

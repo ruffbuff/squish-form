@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { ColorPicker } from "@/components/ColorPicker";
+import { SegmentControl } from "@/components/SegmentControl";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { FLAT_SILHOUETTES } from "@/lib/flatShapes";
 import { flatSvg } from "@/lib/flatSvg";
@@ -119,7 +120,7 @@ export function FlatControls({
         <Segment options={MOODS} value={params.mood} onChange={(mood) => onChange({ mood })} />
       </Field>
 
-      <Field label="Цвет">
+      <Field label="Цвет" className="card--color">
         <Segment options={COLOR_MODES} value={params.colorMode} onChange={(colorMode) => onChange({ colorMode })} />
         {params.colorMode === "gradient" ? (
           <div className="flex gap-2">
@@ -134,11 +135,11 @@ export function FlatControls({
       </Field>
 
       <Field label="Заливка">
-        <Segment options={FILLS} value={params.fill} onChange={(fill) => onChange({ fill })} />
+        <SegmentControl layout="chips" options={FILLS} value={params.fill} onChange={(fill) => onChange({ fill })} />
       </Field>
 
       <Field label="Движение">
-        <Segment options={IDLES} value={params.idle} onChange={(idle) => onChange({ idle })} />
+        <SegmentControl layout="chips" options={IDLES} value={params.idle} onChange={(idle) => onChange({ idle })} />
         <Slider label="Скорость" value={params.speed} onChange={(speed) => onChange({ speed })} />
       </Field>
 
@@ -203,9 +204,9 @@ function StopButton({
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <section className="card">
+    <section className={className ? `card ${className}` : "card"}>
       <h2 className="card-title">{label}</h2>
       {children}
     </section>
@@ -221,16 +222,5 @@ function Segment<T extends string>({
   value: T;
   onChange: (id: T) => void;
 }) {
-  return (
-    <div className="segment" role="group">
-      {options.map((option) => {
-        const active = option.id === value;
-        return (
-          <button key={option.id} type="button" aria-pressed={active} onClick={() => onChange(option.id)}>
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+  return <SegmentControl options={options} value={value} onChange={onChange} />;
 }

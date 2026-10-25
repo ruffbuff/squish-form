@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SegmentControl } from "@/components/SegmentControl";
 
 export const THEME_KEY = "squish-theme";
 
@@ -36,14 +37,16 @@ export function ThemeToggle() {
   return (
     <div className="theme-row">
       <span className="label">Тема</span>
-      <div className="segment" role="group" aria-label="Тема">
-        <button type="button" aria-pressed={theme === "dark"} onClick={() => choose("dark")}>
-          Тёмная
-        </button>
-        <button type="button" aria-pressed={theme === "light"} onClick={() => choose("light")}>
-          Светлая
-        </button>
-      </div>
+      <SegmentControl
+        aria-label="Тема"
+        className="theme-segment"
+        options={[
+          { id: "dark", label: "Тёмная" },
+          { id: "light", label: "Светлая" },
+        ]}
+        value={theme}
+        onChange={choose}
+      />
     </div>
   );
 }
