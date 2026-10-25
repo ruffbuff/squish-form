@@ -214,11 +214,9 @@ export function placeEyes(geometry: THREE.BufferGeometry, id: SilhouetteId): Pla
   const vertex = new THREE.Vector3();
   const normal = new THREE.Vector3();
 
-  const seek = (x: number, minFacing: number): EyeAnchor => {
+  const seek = (x: number, minFacing: number): EyeAnchor | null => {
     let best = -Infinity;
-    let point = new THREE.Vector3(x, y, box.max.z);
-    let found = new THREE.Vector3(0, 0, 1);
-    let hit = false;
+    let anchor: EyeAnchor | null = null;
     for (let i = 0; i < position.count; i++) {
       normal.fromBufferAttribute(normals, i);
       if (normal.z < minFacing) continue;
@@ -228,17 +226,49 @@ export function placeEyes(geometry: THREE.BufferGeometry, id: SilhouetteId): Pla
       const score = normal.z * 2.1 - dx * dx * 2.4 - dy * dy * 4.2 + vertex.z * 0.08;
       if (score > best) {
         best = score;
-        point = vertex.clone();
-        found = normal.clone();
-        hit = true;
+        anchor = { point: vertex.clone(), normal: normal.clone() };
       }
     }
-    if (!hit) {
-      if (minFacing <= 0.2) return { point, normal: found };
-      return seek(x, minFacing - 0.28);
-    }
-    return { point, normal: found.normalize() };
+    if (anchor) anchor.normal.normalize();
+    return anchor;
   };
 
-  return { eyes: [seek(-spread, 0.62), seek(spread, 0.62)], radius, sink: layout.sink };
+  // Both eyes must use the same facing threshold. Searching each side
+  // independently let one eye fall back a level while the other did not,
+  // which produced a lopsided pair on flat shapes such as mochi.
+  let pair: [EyeAnchor, EyeAnchor] | null = null;
+  for (const minFacing of [0.62, 0.34, 0.06, -0.28, -1]) {
+    const left = seek(-spread, minFacing);
+    const right = seek(spread, minFacing);
+    if (left && right && left.point.z > 0 && right.point.z > 0) {
+      pair = [left, right];
+      break;
+    }
+  }
+
+  if (!pair) {
+    const fallback: EyeAnchor = {
+      point: new THREE.Vector3(-spread, y, box.max.z),
+      normal: new THREE.Vector3(0, 0, 1),
+    };
+    pair = [fallback, mirrorAnchor(fallback)];
+  }
+
+  // Enforce an exact mirrored pair. The hull is symmetric, so keeping the
+  // side that faces the camera best and mirroring it avoids small vertex
+  // placement differences turning into visible lopsidedness.
+  const [left, right] = pair;
+  const keepLeft = left.normal.z >= right.normal.z;
+  const eyes: [EyeAnchor, EyeAnchor] = keepLeft
+    ? [left, mirrorAnchor(left)]
+    : [mirrorAnchor(right), right];
+
+  return { eyes, radius, sink: layout.sink };
+}
+
+function mirrorAnchor(anchor: EyeAnchor): EyeAnchor {
+  return {
+    point: new THREE.Vector3(-anchor.point.x, anchor.point.y, anchor.point.z),
+    normal: new THREE.Vector3(-anchor.normal.x, anchor.normal.y, anchor.normal.z),
+  };
 }
