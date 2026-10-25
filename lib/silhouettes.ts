@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import type { QualityTier, SilhouetteId } from "./types";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import type { SilhouetteId, SurfaceMode } from "./types";
 
 export const SILHOUETTES: { id: SilhouetteId; label: string }[] = [
   { id: "blob", label: "Капля" },
@@ -10,20 +11,14 @@ export const SILHOUETTES: { id: SilhouetteId; label: string }[] = [
   { id: "bun", label: "Пышка" },
 ];
 
-/** Icosphere detail. No UV-sphere poles, so gloss and jelly do not pick up a meridian seam. */
-const DETAIL: Record<QualityTier, number> = {
-  0: 1,
-  1: 3,
-  2: 4,
-};
-
 /**
- * Closed icosphere, displaced into a soft silhouette.
- * Vertices are then recentered so every form frames the same way.
+ * Smooth uses a dense sphere with the seam welded so jelly stays round.
+ * Poly is a coarse icosphere; the material draws it flat on purpose.
  */
-export function createSilhouetteGeometry(id: SilhouetteId, tier: QualityTier = 2): THREE.BufferGeometry {
-  const geometry = new THREE.IcosahedronGeometry(1, DETAIL[tier]);
-  const position = geometry.attributes.position;
+export function createSilhouetteGeometry(id: SilhouetteId, surface: SurfaceMode = "smooth"): THREE.BufferGeometry {
+  const source =
+    surface === "poly" ? new THREE.IcosahedronGeometry(1, 2) : new THREE.SphereGeometry(1, 144, 108);
+  const position = source.attributes.position;
   const vertex = new THREE.Vector3();
 
   for (let i = 0; i < position.count; i++) {
@@ -33,6 +28,8 @@ export function createSilhouetteGeometry(id: SilhouetteId, tier: QualityTier = 2
   }
 
   position.needsUpdate = true;
+  const geometry = surface === "smooth" ? mergeVertices(source, 1e-4) : source;
+  if (geometry !== source) source.dispose();
   geometry.computeVertexNormals();
   centerAndFit(geometry, 1);
   return geometry;

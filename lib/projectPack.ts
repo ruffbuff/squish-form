@@ -1,6 +1,12 @@
 import type { IdleId } from "./types";
 
-export function avatarComponentSource(idle: IdleId, follow: boolean, tap: boolean) {
+export function avatarComponentSource(
+  idle: IdleId,
+  follow: boolean,
+  tap: boolean,
+  speed: number,
+  smoothness: number,
+) {
   return `"use client";
 
 import { useRef } from "react";
@@ -8,12 +14,16 @@ import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import type { Group, Mesh } from "three";
 
-export type SquishIdle = "none" | "breathe" | "sway" | "both";
+export type SquishIdle = "none" | "breathe" | "sway" | "bounce" | "spin";
 
 type SquishAvatarProps = {
   /** Put avatar.glb in public/ and pass "/avatar.glb". */
   url?: string;
   idle?: SquishIdle;
+  /** 0–1 */
+  speed?: number;
+  /** 0–1, higher is softer. */
+  smoothness?: number;
   follow?: boolean;
   tap?: boolean;
   blink?: boolean;
@@ -22,6 +32,8 @@ type SquishAvatarProps = {
 export function SquishAvatar({
   url = "/avatar.glb",
   idle = "${idle}",
+  speed = ${speed},
+  smoothness = ${smoothness},
   follow = ${follow},
   tap = ${tap},
   blink = true,
@@ -42,16 +54,31 @@ export function SquishAvatar({
     let pitch = 0;
     let bob = 0;
 
-    if (idle === "breathe" || idle === "both") {
-      const pulse = Math.sin(time * 2.15);
-      height += pulse * 0.12;
-      width -= pulse * 0.075;
+    const pace = 0.35 + speed * 1.75;
+    if (idle === "breathe") {
+      const pulse = Math.sin(time * 2.1 * pace);
+      height += pulse * 0.13;
+      width -= pulse * 0.08;
     }
-    if (idle === "sway" || idle === "both") {
-      yaw += Math.sin(time * 0.85) * 0.58;
-      roll += Math.sin(time * 0.62) * 0.24;
-      pitch += Math.cos(time * 0.54) * 0.18;
-      bob += Math.sin(time * 0.85) * 0.11;
+    if (idle === "sway") {
+      yaw += Math.sin(time * 0.9 * pace) * 0.64;
+      roll += Math.sin(time * 0.65 * pace) * 0.28;
+      pitch += Math.cos(time * 0.54 * pace) * 0.2;
+      bob += Math.sin(time * 0.9 * pace) * 0.12;
+    }
+    if (idle === "bounce") {
+      const sample = Math.sin(time * 1.45 * pace);
+      const hop = sample > 0 ? Math.pow(sample, 0.45 + smoothness * 1.4) : 0;
+      const land = sample < 0 ? Math.pow(-sample, 0.45 + smoothness * 1.4) : 0;
+      bob += hop * 0.5;
+      height += hop * 0.1 - land * 0.2;
+      width += -hop * 0.06 + land * 0.16;
+    }
+    if (idle === "spin") {
+      const unit = (Math.sin(time * 0.55 * pace) + 1) / 2;
+      const soft = unit * unit * (3 - 2 * unit);
+      const sharp = unit < 0.5 ? 0 : 1;
+      yaw += (soft * smoothness + (sharp * 0.7 + unit * 0.3) * (1 - smoothness)) * Math.PI * 2;
     }
 
     let lookX = 0;
@@ -158,7 +185,8 @@ import { SquishAvatar } from "./squish-avatar";
 
 ## Props
 
-- \`idle\` — \`none\`, \`breathe\`, \`sway\` или \`both\`. Дыхание меняет масштаб, покачивание — наклон.
+- \`idle\` — \`none\`, \`breathe\`, \`sway\`, \`bounce\` или \`spin\`.
+- \`speed\` и \`smoothness\` — скорость и плавность, от 0 до 1.
 - \`follow\` — глаза и корпус следят за курсором.
 - \`tap\` — клик по форме коротко сжимает её.
 - \`blink\` — моргание чёрных глаз.

@@ -1,20 +1,26 @@
 import { MATERIALS } from "./materials";
 import { SILHOUETTES } from "./silhouettes";
-import type { AvatarParams, EyeStyle, IdleId } from "./types";
+import type { AvatarParams, ColorMode, EyeStyle } from "./types";
 
 const EYES: EyeStyle[] = ["dots", "ovals"];
-const IDLES: IdleId[] = ["none", "breathe", "sway", "both"];
-const PRESETS = ["#40ea34", "#f08a78", "#7ec8ff", "#ffd166", "#e879f9", "#fb7185", "#f4efe8", "#38bdf8", "#fb923c", "#a3e635"];
+const MODES: ColorMode[] = ["solid", "gradient"];
+const PRESETS = ["#40ea34", "#f08a78", "#7ec8ff", "#ffd166", "#e879f9", "#fb7185", "#f4efe8", "#38bdf8", "#fb923c", "#a3e635", "#ec0dff"];
 
-/** New silhouette, color, material, eyes, and motion. Keeps quality and the light toggles. */
+/**
+ * New silhouette, colors, material, and eyes.
+ * Leaves light, follow, tap, and motion alone.
+ */
 export function randomizeAvatar(current: AvatarParams): AvatarParams {
   return {
     ...current,
     silhouette: pick(SILHOUETTES).id,
     color: Math.random() < 0.8 ? pick(PRESETS) : randomHex(),
+    colorB: Math.random() < 0.8 ? pick(PRESETS) : randomHex(),
+    colorMode: pick(MODES),
+    gradientAngle: Math.random(),
+    gradientSoft: Math.random() < 0.75,
     material: pick(MATERIALS).id,
     eyes: pick(EYES),
-    idle: pick(IDLES),
     eyeSize: 0.75 + Math.random() * 0.7,
   };
 }

@@ -14,10 +14,19 @@ const AvatarCanvas = dynamic(() => import("@/components/AvatarCanvas"), {
 const INITIAL: AvatarParams = {
   silhouette: "blob",
   color: "#f08a78",
+  colorB: "#7ec8ff",
+  colorMode: "solid",
+  gradientAngle: 0.25,
+  gradientSoft: true,
   material: "jelly",
-  idle: "both",
+  surface: "smooth",
+  rim: 0.2,
+  idle: "breathe",
+  speed: 0.55,
+  smoothness: 0.7,
   eyes: "dots",
   eyeSize: 1,
+  backdrop: "studio",
   lightOn: true,
   lightX: 0.72,
   lightY: 0.62,
@@ -32,6 +41,7 @@ export default function Page() {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [home, setHome] = useState(0);
   const apiRef = useRef<PlaygroundApi | null>(null);
 
   const onReady = useCallback((api: PlaygroundApi | null) => {
@@ -90,9 +100,18 @@ export default function Page() {
     <main className="flex h-dvh flex-col bg-[var(--bg)] md:flex-row">
       <section className="relative h-[58dvh] shrink-0 md:h-auto md:min-h-0 md:flex-1">
         <div className="absolute inset-0" style={{ touchAction: "none" }}>
-          <AvatarCanvas {...params} onReady={onReady} />
+          <AvatarCanvas {...params} home={home} onReady={onReady} />
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_42%,rgba(0,0,0,0.38)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_58%,rgba(0,0,0,0.28)_100%)]" />
+        <button
+          type="button"
+          aria-label="Камера домой"
+          title="Камера домой"
+          onClick={() => setHome((value) => value + 1)}
+          className="absolute bottom-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#1c1a17]/90 text-[#f6f1ea] shadow-lg"
+        >
+          <HomeIcon />
+        </button>
       </section>
       <aside className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[380px] md:flex-none md:border-t-0 md:border-l">
         <ControlsPanel
@@ -108,5 +127,19 @@ export default function Page() {
         />
       </aside>
     </main>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <path
+        d="M3 8.2 9 3.2l6 5V15a1 1 0 0 1-1 1h-3.2v-4.2H7.2V16H4a1 1 0 0 1-1-1V8.2Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

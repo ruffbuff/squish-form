@@ -1,6 +1,13 @@
 import * as THREE from "three";
 import type { MaterialId } from "./types";
 
+export type MaterialFinish = {
+  flat: boolean;
+  vertexColors: boolean;
+  secondary: string;
+  rim: number;
+};
+
 export const MATERIALS: { id: MaterialId; label: string }[] = [
   { id: "matte", label: "Матовый" },
   { id: "jelly", label: "Желе" },
@@ -12,10 +19,13 @@ export const MATERIALS: { id: MaterialId; label: string }[] = [
 const CLAY_SIZE = 128;
 let clayGrain: THREE.CanvasTexture | null = null;
 
-export function createAvatarMaterial(id: MaterialId, hex: string) {
-  const color = new THREE.Color(hex);
+export function createAvatarMaterial(id: MaterialId, hex: string, finish: MaterialFinish) {
+  const color = new THREE.Color(finish.vertexColors ? "#ffffff" : hex);
+  const tint = new THREE.Color(hex).lerp(new THREE.Color(finish.secondary), finish.vertexColors ? 0.5 : 0);
   const material = new THREE.MeshPhysicalMaterial({
     color,
+    vertexColors: finish.vertexColors,
+    flatShading: finish.flat,
     metalness: 0,
     name: `squish-${id}`,
   });
@@ -26,11 +36,12 @@ export function createAvatarMaterial(id: MaterialId, hex: string) {
     material.clearcoat = 0.04;
     material.clearcoatRoughness = 0.9;
     material.envMapIntensity = 0.55;
+    applyRim(material, finish.rim);
     return material;
   }
 
   if (id === "jelly") {
-    const attenuation = color.clone().lerp(new THREE.Color("#ffffff"), 0.12);
+    const attenuation = tint.clone().lerp(new THREE.Color("#ffffff"), 0.12);
     material.roughness = 0.07;
     material.transmission = 0.78;
     material.thickness = 1.55;
@@ -43,6 +54,7 @@ export function createAvatarMaterial(id: MaterialId, hex: string) {
     material.envMapIntensity = 1.25;
     material.transparent = true;
     material.opacity = 1;
+    applyRim(material, finish.rim);
     return material;
   }
 
@@ -52,6 +64,7 @@ export function createAvatarMaterial(id: MaterialId, hex: string) {
     material.clearcoatRoughness = 0.16;
     material.specularIntensity = 0.85;
     material.envMapIntensity = 1.1;
+    applyRim(material, finish.rim);
     return material;
   }
 
@@ -64,13 +77,14 @@ export function createAvatarMaterial(id: MaterialId, hex: string) {
     material.clearcoatRoughness = 0.1;
     material.sheen = 0.65;
     material.sheenRoughness = 0.35;
-    material.sheenColor = color.clone().lerp(new THREE.Color("#ffffff"), 0.55);
+    material.sheenColor = tint.clone().lerp(new THREE.Color("#ffffff"), 0.55);
     material.specularIntensity = 0.9;
     material.envMapIntensity = 1.15;
+    applyRim(material, finish.rim);
     return material;
   }
 
-  const sheen = color.clone().lerp(new THREE.Color("#fff6ee"), 0.42);
+  const sheen = tint.clone().lerp(new THREE.Color("#fff6ee"), 0.42);
   material.roughness = 0.84;
   material.sheen = 0.82;
   material.sheenRoughness = 0.62;
@@ -81,14 +95,34 @@ export function createAvatarMaterial(id: MaterialId, hex: string) {
   material.envMapIntensity = 0.42;
   material.transmission = 0.04;
   material.thickness = 0.7;
-  material.attenuationColor = color.clone().lerp(new THREE.Color("#ffd9c8"), 0.25);
+  material.attenuationColor = tint.clone().lerp(new THREE.Color("#ffd9c8"), 0.25);
   material.attenuationDistance = 1.5;
   const grain = getClayGrain();
   if (grain) {
     material.bumpMap = grain;
     material.bumpScale = 0.11;
   }
+  applyRim(material, finish.rim);
   return material;
+}
+
+function applyRim(material: THREE.MeshPhysicalMaterial, amount: number) {
+  if (amount <= 0.01) return;
+  const rim = amount.toFixed(3);
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <opaque_fragment>",
+      `
+      {
+        float facing = abs(dot(normalize(normal), normalize(vViewPosition)));
+        float fres = pow(1.0 - saturate(facing), 2.6);
+        outgoingLight += fres * ${rim} * vec3(1.0, 0.97, 0.93);
+      }
+      #include <opaque_fragment>
+      `,
+    );
+  };
+  material.customProgramCacheKey = () => `squish-rim-${rim}`;
 }
 
 function getClayGrain() {

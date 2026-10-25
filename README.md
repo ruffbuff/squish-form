@@ -13,16 +13,20 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## What you can change
 
-- **Silhouette** — drop, bean, squircle, pear, pill, bun. Procedural icospheres, so gloss and jelly do not show a sphere-pole seam.
+- **Silhouette** — drop, bean, squircle, pear, pill, bun, shown as icon previews. The circle above Random is a still frame of the current avatar.
+- **Surface** — smooth by default. Polygons is an optional flat look.
 - **Eyes** — small black dots or soft black ovals. They blink and look around. Size is a slider.
-- **Color** — swatches, a hue/saturation pad, and hex.
+- **Color** — solid, or a two-stop gradient with angle and a soft or hard blend.
 - **Material** — matte, jelly, clay, gloss, pearlescent.
-- **Motion** — none, breathe (scale), sway (tilt), or both. They do not share the same motion.
-- **Quality** — mesh density, pixel ratio, and the contact shadow.
-- **Light** — a point light with horizontal, vertical, and intensity controls, or off. The bulb hides when the light is off. Fill lights stay on.
+- **Rim** — optional fresnel. Zero turns it off.
+- **Motion** — none, breathe, sway, bounce, or a full spin out and back. Speed and smoothness apply to all of them.
+- **Quality** — pixel ratio and the contact shadow.
+- **Backdrop** — empty, studio gradient, or a soft floor grid.
+- **Light** — a point light with horizontal, vertical, and intensity controls, or off. The bulb hides when the light is off.
 - **Follow cursor** — eyes and lean track the pointer.
-- **Tap reaction** — its own on/off toggle. A tap squashes the form.
-- **Random** — new silhouette, color, material, eyes, and motion. Quality and the light settings stay.
+- **Tap reaction** — its own on/off toggle.
+- **Camera home** — the round button at the bottom-right of the view returns the camera to the standard pose.
+- **Random** — silhouette, color, gradient, material, and eyes. It does not change light, follow, tap, or motion.
 
 ## Export
 

@@ -4,14 +4,17 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { BufferGeometry, Material, Mesh } from "three";
+import { paintGradient } from "@/lib/gradient";
 import { createAvatarMaterial } from "@/lib/materials";
+import { idlePose } from "@/lib/motion";
 import { createSilhouetteGeometry } from "@/lib/silhouettes";
-import {
-  qualityTier,
-  type EyeStyle,
-  type IdleId,
-  type MaterialId,
-  type SilhouetteId,
+import type {
+  ColorMode,
+  EyeStyle,
+  IdleId,
+  MaterialId,
+  SilhouetteId,
+  SurfaceMode,
 } from "@/lib/types";
 
 const REST_YAW = 0.38;
@@ -20,13 +23,21 @@ const REST_Y = 0.02;
 type AvatarMeshProps = {
   silhouette: SilhouetteId;
   color: string;
+  colorB: string;
+  colorMode: ColorMode;
+  gradientAngle: number;
+  gradientSoft: boolean;
   material: MaterialId;
+  surface: SurfaceMode;
+  rim: number;
   idle: IdleId;
+  speed: number;
+  smoothness: number;
   eyes: EyeStyle;
   eyeSize: number;
-  quality: number;
   follow: boolean;
   tap: boolean;
+  frozen?: boolean;
 };
 
 type EyeAnchor = {
@@ -37,13 +48,21 @@ type EyeAnchor = {
 export function AvatarMesh({
   silhouette,
   color,
+  colorB,
+  colorMode,
+  gradientAngle,
+  gradientSoft,
   material,
+  surface,
+  rim,
   idle,
+  speed,
+  smoothness,
   eyes,
   eyeSize,
-  quality,
   follow,
   tap,
+  frozen = false,
 }: AvatarMeshProps) {
   const rig = useRef<THREE.Group>(null);
   const eyeMeshes = useRef<(Mesh | null)[]>([null, null]);
@@ -53,9 +72,21 @@ export function AvatarMesh({
   const blink = useRef({ next: 0.6, time: -1 });
   const gl = useThree((state) => state.gl);
 
-  const tier = qualityTier(quality);
-  const geometry = useMemo(() => createSilhouetteGeometry(silhouette, tier), [silhouette, tier]);
-  const surface = useMemo(() => createAvatarMaterial(material, color), [material, color]);
+  const geometry = useMemo(() => {
+    const next = createSilhouetteGeometry(silhouette, surface);
+    paintGradient(next, colorMode, color, colorB, gradientAngle * Math.PI * 2, gradientSoft);
+    return next;
+  }, [silhouette, surface, colorMode, color, colorB, gradientAngle, gradientSoft]);
+  const surfaceMaterial = useMemo(
+    () =>
+      createAvatarMaterial(material, color, {
+        flat: surface === "poly",
+        vertexColors: true,
+        secondary: colorB,
+        rim,
+      }),
+    [material, color, colorB, surface, rim],
+  );
   const anchors = useMemo(() => placeEyes(geometry), [geometry]);
   const eyeGeometry = useMemo(() => new THREE.SphereGeometry(1, 18, 14), []);
   const eyeMaterial = useMemo(
@@ -70,9 +101,9 @@ export function AvatarMesh({
   );
 
   const liveGeometry = useRef<BufferGeometry>(geometry);
-  const liveMaterial = useRef<Material>(surface);
+  const liveMaterial = useRef<Material>(surfaceMaterial);
   liveGeometry.current = geometry;
-  liveMaterial.current = surface;
+  liveMaterial.current = surfaceMaterial;
 
   useEffect(() => {
     const created = geometry;
@@ -82,11 +113,11 @@ export function AvatarMesh({
   }, [geometry]);
 
   useEffect(() => {
-    const created = surface;
+    const created = surfaceMaterial;
     return () => {
       if (liveMaterial.current !== created) created.dispose();
     };
-  }, [surface]);
+  }, [surfaceMaterial]);
 
   useEffect(() => {
     const element = gl.domElement;
@@ -120,7 +151,10 @@ export function AvatarMesh({
     const current = rig.current;
     if (!current) return;
 
+    if (frozen) return;
+
     const time = state.clock.elapsedTime;
+    const pace = 0.35 + speed * 1.75;
     const wander = idle !== "none";
     let targetX = 0;
     let targetY = 0;
@@ -128,28 +162,15 @@ export function AvatarMesh({
       targetX = THREE.MathUtils.clamp(state.pointer.x * 1.2, -1, 1);
       targetY = THREE.MathUtils.clamp(state.pointer.y * 0.95, -1, 1);
     } else if (wander) {
-      targetX = Math.sin(time * 0.7) * 0.9;
-      targetY = Math.sin(time * 0.46 + 0.8) * 0.42;
+      targetX = Math.sin(time * 0.7 * pace) * 0.9;
+      targetY = Math.sin(time * 0.46 * pace + 0.8) * 0.42;
     }
     look.current.x = THREE.MathUtils.damp(look.current.x, targetX, 8, delta);
     look.current.y = THREE.MathUtils.damp(look.current.y, targetY, 8, delta);
 
     const open = blinkOpen(blink.current, time, delta);
-    const breathe = idle === "breathe" || idle === "both";
-    const sway = idle === "sway" || idle === "both";
-    const pulse = breathe ? Math.sin(time * 2.15) : 0;
-    let width = 1 - (breathe ? pulse * 0.075 : 0);
-    let height = 1 + (breathe ? pulse * 0.12 : 0);
-    let yaw = 0;
-    let roll = 0;
-    let pitch = 0;
-    let bob = 0;
-    if (sway) {
-      yaw += Math.sin(time * 0.85) * 0.58;
-      roll += Math.sin(time * 0.62) * 0.24;
-      pitch += Math.cos(time * 0.54) * 0.18;
-      bob += Math.sin(time * 0.85) * 0.11;
-    }
+    const pose = idlePose(idle, time, speed, smoothness);
+    let { width, height, yaw, roll, pitch, bob } = pose;
 
     yaw += look.current.x * 0.28;
     roll += -look.current.x * 0.16;
@@ -194,11 +215,11 @@ export function AvatarMesh({
   };
 
   return (
-    <group ref={rig} name="squish-avatar">
+    <group ref={rig} name="squish-avatar" position={[0, REST_Y, 0]} rotation={[0, REST_YAW, 0]}>
       <mesh
         name="squish-body"
         geometry={geometry}
-        material={surface}
+        material={surfaceMaterial}
         castShadow={false}
         receiveShadow={false}
         onClick={poke}
