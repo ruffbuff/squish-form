@@ -10,6 +10,7 @@ const PRESETS = ["#40ea34", "#f08a78", "#7ec8ff", "#ffd166", "#e879f9", "#fb7185
 /**
  * New silhouette, colors, material, and eyes.
  * Leaves light, follow, tap, and motion alone.
+ * Eye depth only jitters inside a narrow seated range.
  */
 export function randomizeAvatar(current: AvatarParams): AvatarParams {
   return {
@@ -24,6 +25,7 @@ export function randomizeAvatar(current: AvatarParams): AvatarParams {
     eyes: pick(EYES),
     mood: pick(MOODS),
     eyeSize: 0.75 + Math.random() * 0.7,
+    eyeInset: 0.54 + Math.random() * 0.16,
   };
 }
 

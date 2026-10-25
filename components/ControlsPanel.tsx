@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { AvatarPreview } from "@/components/AvatarPreview";
 import { ColorPicker } from "@/components/ColorPicker";
 import { SilhouettePicker } from "@/components/SilhouettePicker";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { MATERIALS } from "@/lib/materials";
 import { qualityTier, type AvatarParams, type BackdropId, type ColorMode, type EyeMood, type EyeStyle, type IdleId, type SurfaceMode } from "@/lib/types";
 
@@ -73,11 +74,12 @@ export function ControlsPanel({
   const editingB = params.colorMode === "gradient" && stop === "b";
 
   return (
-    <div className="flex h-full flex-col gap-5 px-5 py-6">
+    <div className="panel-scroll">
       <h1 className="sr-only">SquishForm</h1>
+      <ThemeToggle />
       <AvatarPreview {...params} />
 
-      <button type="button" onClick={onRandom} className="download">
+      <button type="button" onClick={onRandom} className="btn-primary">
         Случайно
       </button>
 
@@ -97,14 +99,20 @@ export function ControlsPanel({
           display={params.eyeSize < 0.85 ? "Мелкие" : params.eyeSize > 1.25 ? "Крупнее" : "Средние"}
           onChange={(unit) => onChange({ eyeSize: 0.55 + unit * 1.15 })}
         />
-        <p className="pt-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Настроение</p>
+        <Slider
+          label="Глубина"
+          value={params.eyeInset}
+          display={params.eyeInset < 0.28 ? "Снаружи" : params.eyeInset > 0.82 ? "Вглубь" : "Глубина"}
+          onChange={(eyeInset) => onChange({ eyeInset })}
+        />
+        <p className="subhead">Настроение</p>
         <Segment options={MOODS} value={params.mood} onChange={(mood) => onChange({ mood })} />
       </Field>
 
       <Field label="Цвет">
         <Segment options={COLOR_MODES} value={params.colorMode} onChange={(colorMode) => onChange({ colorMode })} />
         {params.colorMode === "gradient" ? (
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <StopButton label="A" color={params.color} active={stop === "a"} onClick={() => setStop("a")} />
             <StopButton label="B" color={params.colorB} active={stop === "b"} onClick={() => setStop("b")} />
           </div>
@@ -159,64 +167,55 @@ export function ControlsPanel({
         />
       </Field>
 
-      <section className="flex flex-col gap-2">
+      <section className="card">
+        <div className="switch-block">
+          <Toggle
+            label="Свет"
+            hint="Точка блика"
+            on={params.lightOn}
+            onClick={() => onChange({ lightOn: !params.lightOn })}
+          />
+          {params.lightOn ? (
+            <div className="nested-sliders">
+              <Slider label="Горизонт" value={params.lightX} onChange={(lightX) => onChange({ lightX })} />
+              <Slider label="Высота" value={params.lightY} onChange={(lightY) => onChange({ lightY })} />
+              <Slider
+                label="Яркость"
+                value={params.lightIntensity}
+                onChange={(lightIntensity) => onChange({ lightIntensity })}
+              />
+            </div>
+          ) : null}
+        </div>
         <Toggle
-          label="Свет"
-          hint="Точка блика"
-          on={params.lightOn}
-          onClick={() => onChange({ lightOn: !params.lightOn })}
+          label="За курсором"
+          hint="Глаза и наклон"
+          on={params.follow}
+          onClick={() => onChange({ follow: !params.follow })}
         />
-        {params.lightOn ? (
-          <div className="flex flex-col gap-2 pl-1">
-            <Slider
-              label="Горизонт"
-              value={params.lightX}
-              onChange={(lightX) => onChange({ lightX })}
-            />
-            <Slider
-              label="Высота"
-              value={params.lightY}
-              onChange={(lightY) => onChange({ lightY })}
-            />
-            <Slider
-              label="Яркость"
-              value={params.lightIntensity}
-              onChange={(lightIntensity) => onChange({ lightIntensity })}
-            />
-          </div>
-        ) : null}
+        <Toggle
+          label="Реакция на тап"
+          hint="Зажатие сжимает форму"
+          on={params.tap}
+          onClick={() => onChange({ tap: !params.tap })}
+        />
       </section>
 
-      <Toggle
-        label="За курсором"
-        hint="Глаза и наклон"
-        on={params.follow}
-        onClick={() => onChange({ follow: !params.follow })}
-      />
-      <Toggle
-        label="Реакция на тап"
-        hint="Клик сжимает форму"
-        on={params.tap}
-        onClick={() => onChange({ tap: !params.tap })}
-      />
-
-      <div className="mt-auto flex flex-col gap-2 pt-2">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Файлы</p>
-        <button type="button" disabled={!ready || busy} onClick={onDownloadGlb} className="download">
+      <section className="card mt-auto">
+        <h2 className="card-title">Файлы</h2>
+        <button type="button" disabled={!ready || busy} onClick={onDownloadGlb} className="btn-ghost">
           {busy ? "Сохраняю…" : "Скачать GLB"}
         </button>
-        <button type="button" disabled={!ready || busy} onClick={onDownloadPng} className="download">
+        <button type="button" disabled={!ready || busy} onClick={onDownloadPng} className="btn-ghost">
           Скачать PNG
         </button>
-        <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Пакет для проекта</p>
-        <button type="button" disabled={!ready || busy} onClick={onDownloadPack} className="download">
+        <p className="subhead">Пакет для проекта</p>
+        <button type="button" disabled={!ready || busy} onClick={onDownloadPack} className="btn-ghost">
           {busy ? "Сохраняю…" : "Скачать пакет"}
         </button>
-        <p className="text-xs leading-snug text-[var(--muted)]">
-          GLB, компонент React Three Fiber и инструкция. Сейчас бесплатно.
-        </p>
-        {error ? <p className="text-sm text-[#ffb4a8]">{error}</p> : null}
-      </div>
+        <p className="note">GLB, компонент React Three Fiber и инструкция. Сейчас бесплатно.</p>
+        {error ? <p className="error">{error}</p> : null}
+      </section>
     </div>
   );
 }
@@ -233,8 +232,8 @@ function Slider({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 text-xs text-[#d9d2c8]">
-      <span className="w-16 shrink-0">{display ?? label}</span>
+    <label className="slider-row">
+      <span>{display ?? label}</span>
       <input
         aria-label={label}
         type="range"
@@ -250,24 +249,13 @@ function Slider({
 
 function Toggle({ label, hint, on, onClick }: { label: string; hint: string; on: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className="flex items-center justify-between rounded-2xl bg-black/25 px-3 py-2.5 text-left"
-    >
-      <span>
-        <span className="block text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{label}</span>
-        <span className="text-sm text-[var(--muted)]">{hint}</span>
+    <button type="button" aria-pressed={on} onClick={onClick} className="switch-row">
+      <span className="switch-text">
+        <span className="t">{label}</span>
+        <span className="h">{hint}</span>
       </span>
-      <span
-        className={
-          on
-            ? "rounded-full bg-[#f4efe8] px-3 py-1 text-xs font-medium text-[#1a1613]"
-            : "rounded-full bg-white/5 px-3 py-1 text-xs text-[#d9d2c8]"
-        }
-      >
-        {on ? "Вкл" : "Выкл"}
+      <span className="ios" aria-hidden="true">
+        <span className="knob" />
       </span>
     </button>
   );
@@ -289,9 +277,9 @@ function StopButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="flex flex-1 items-center gap-2 rounded-2xl bg-black/25 px-3 py-2 text-sm"
+      className="stop-btn"
     >
-      <span className="h-5 w-5 rounded-full border border-white/20" style={{ background: color }} />
+      <span className="dot" style={{ background: color }} />
       {label}
     </button>
   );
@@ -299,8 +287,8 @@ function StopButton({
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{label}</h2>
+    <section className="card">
+      <h2 className="card-title">{label}</h2>
       {children}
     </section>
   );
@@ -316,21 +304,11 @@ function Segment<T extends string>({
   onChange: (id: T) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1 rounded-2xl bg-black/25 p-1" role="group">
+    <div className="segment" role="group">
       {options.map((option) => {
         const active = option.id === value;
         return (
-          <button
-            key={option.id}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onChange(option.id)}
-            className={
-              active
-                ? "grow whitespace-nowrap rounded-xl bg-[#f4efe8] px-3 py-2 text-[13px] font-medium text-[#1a1613]"
-                : "grow whitespace-nowrap rounded-xl px-3 py-2 text-[13px] text-[#d9d2c8] hover:bg-white/5"
-            }
-          >
+          <button key={option.id} type="button" aria-pressed={active} onClick={() => onChange(option.id)}>
             {option.label}
           </button>
         );

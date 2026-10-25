@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { eyeMoodShape, placeEyes } from "./eyes";
+import { eyeMoodShape, eyeProtrusion, eyeTilt, placeEyes, seatEyePosition } from "./eyes";
 import { paintGradient } from "./gradient";
 import { createAvatarMaterial } from "./materials";
 import { createSilhouetteGeometry } from "./silhouettes";
@@ -18,6 +18,7 @@ type StillShot = Pick<
   | "rim"
   | "eyes"
   | "eyeSize"
+  | "eyeInset"
   | "mood"
 >;
 
@@ -44,16 +45,18 @@ export function renderAvatarStill(params: StillShot) {
   });
   const body = new THREE.Mesh(geometry, material);
   body.rotation.y = 0.38;
-  const anchors = placeEyes(geometry);
+  const anchors = placeEyes(geometry, params.silhouette);
   const radius = anchors.radius * params.eyeSize;
   const mood = eyeMoodShape(params.mood, params.eyes === "ovals");
-  for (const anchor of anchors.eyes) {
+  const protrusion = eyeProtrusion(params.eyeInset, anchors.sink);
+  anchors.eyes.forEach((anchor, index) => {
     const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    const position = anchor.point.clone().addScaledVector(anchor.normal, radius * 1.05);
-    eye.position.set(position.x, position.y + radius * mood.lift, position.z);
-    eye.scale.set(radius * mood.sx, radius * mood.sy, radius * mood.sz);
+    const depth = radius * mood.sz;
+    eye.position.copy(seatEyePosition(anchor, depth, protrusion, radius * mood.lift));
+    eye.scale.set(radius * mood.sx, radius * mood.sy, depth);
+    eye.rotation.z = eyeTilt(mood, index);
     body.add(eye);
-  }
+  });
   stage.add(body);
   gl.render(stage, view);
   const url = gl.domElement.toDataURL("image/png");
@@ -89,9 +92,12 @@ function ensureScene() {
 function ensureCamera() {
   if (!camera) {
     camera = new THREE.PerspectiveCamera(32, 1, 0.1, 20);
-    camera.position.set(0.35, 0.18, 3.7);
-    camera.lookAt(0, 0, 0);
   }
+  // One distance for every shape. Re-applied so a hot reload cannot keep
+  // an older, closer camera that clips the disk and the squircle.
+  camera.position.set(0.08, 0.06, 5.7);
+  camera.lookAt(0, 0, 0);
+  camera.updateProjectionMatrix();
   return camera;
 }
 

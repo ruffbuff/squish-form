@@ -69,6 +69,7 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
         eyes={props.eyes}
         mood={props.mood}
         eyeSize={props.eyeSize}
+        eyeInset={props.eyeInset}
         follow={props.follow}
         tap={props.tap}
       />

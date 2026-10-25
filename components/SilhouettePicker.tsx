@@ -24,7 +24,7 @@ export function SilhouettePicker({ value, onChange }: SilhouettePickerProps) {
   }, []);
 
   return (
-    <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="Силуэт">
+    <div className="sil-grid" role="group" aria-label="Силуэт">
       {SILHOUETTES.map((option) => {
         const active = option.id === value;
         return (
@@ -35,16 +35,11 @@ export function SilhouettePicker({ value, onChange }: SilhouettePickerProps) {
             aria-pressed={active}
             title={option.label}
             onClick={() => onChange(option.id)}
-            className={
-              active
-                ? "overflow-hidden rounded-2xl bg-black/40 p-1 ring-2 ring-[#f4efe8]"
-                : "overflow-hidden rounded-2xl bg-black/25 p-1 ring-2 ring-transparent hover:bg-white/5"
-            }
           >
             {icons ? (
-              <img src={icons[option.id]} alt="" className="h-14 w-full object-contain" />
+              <img src={icons[option.id]} alt="" className="h-full w-full object-contain" />
             ) : (
-              <span className="block h-14" />
+              <span className="block h-full" />
             )}
           </button>
         );
