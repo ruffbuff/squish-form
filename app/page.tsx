@@ -197,7 +197,7 @@ export default function Page() {
         <div className="shrink-0 border-b border-[var(--line)] px-4 py-3">
           <ModeSwitch value={mode} onChange={onMode} />
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {mode === "3d" ? (
             <ControlsPanel
               params={params}

@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { ColorPicker } from "@/components/ColorPicker";
 import { SegmentControl } from "@/components/SegmentControl";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { FLAT_SHOWCASE } from "@/lib/flatShowcase";
 import { FLAT_SILHOUETTES } from "@/lib/flatShapes";
 import { flatSvg } from "@/lib/flatSvg";
 import type { FlatColorMode, FlatEyeMood, FlatEyeStyle, FlatFillId, FlatIdleId, FlatParams, FlatSilhouetteId } from "@/lib/flatTypes";
@@ -62,17 +63,28 @@ export function FlatControls({
   const [stop, setStop] = useState<"a" | "b">("a");
   const editingB = params.colorMode === "gradient" && stop === "b";
   const look = `${params.color}|${params.colorB}|${params.colorMode}|${params.gradientCenterX}|${params.gradientCenterY}|${params.fill}|${params.eyes}|${params.mood}|${params.eyeSize}|${params.shadowOn}`;
+  const thumbLook = `${params.eyes}|${params.mood}|${params.eyeSize}`;
 
   const icons = useMemo(() => {
     const images = {} as Record<FlatSilhouetteId, string>;
     for (const shape of FLAT_SILHOUETTES) {
-      images[shape.id] = flatSvg({ ...params, silhouette: shape.id }, "icon", `icon-${shape.id}`, {
-        neutralThumb: true,
-      });
+      const showcase = FLAT_SHOWCASE[shape.id];
+      images[shape.id] = flatSvg(
+        {
+          ...params,
+          silhouette: shape.id,
+          color: showcase.color,
+          colorB: showcase.color,
+          colorMode: "solid",
+          fill: showcase.fill,
+        },
+        "icon",
+        `icon-${shape.id}`,
+      );
     }
     return images;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [look]);
+  }, [thumbLook]);
 
   const medal = useMemo(
     () => flatSvg(params, "medal", "medal"),
