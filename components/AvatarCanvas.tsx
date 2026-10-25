@@ -73,7 +73,7 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
         follow={props.follow}
         tap={props.tap}
       />
-      {tier > 0 ? <SoftShadow /> : null}
+      {tier > 0 && props.shadowOn ? <SoftShadow /> : null}
       <QualityBinder quality={props.quality} />
       <CameraHome home={props.home} />
       <ExportBinder
@@ -209,10 +209,6 @@ function Highlight({ x, y, intensity }: { x: number; y: number; intensity: numbe
   return (
     <group name="squish-light" position={[px, py, 1.7]}>
       <pointLight intensity={power} distance={6} decay={2} color="#fff8f2" />
-      <mesh>
-        <sphereGeometry args={[0.045, 18, 14]} />
-        <meshBasicMaterial color="#fff7ee" toneMapped={false} />
-      </mesh>
     </group>
   );
 }

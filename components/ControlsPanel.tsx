@@ -158,6 +158,12 @@ export function ControlsPanel({
 
       <Field label="Фон">
         <Segment options={BACKDROPS} value={params.backdrop} onChange={(backdrop) => onChange({ backdrop })} />
+        <Toggle
+          label="Тень"
+          hint="Контакт под формой"
+          on={params.shadowOn}
+          onClick={() => onChange({ shadowOn: !params.shadowOn })}
+        />
       </Field>
 
       <Field label="Качество">

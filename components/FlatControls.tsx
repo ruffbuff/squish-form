@@ -31,6 +31,8 @@ const IDLES: { id: FlatIdleId; label: string }[] = [
   { id: "none", label: "Нет" },
   { id: "breathe", label: "Дыхание" },
   { id: "float", label: "Левитация" },
+  { id: "spin", label: "Оборот" },
+  { id: "bounce", label: "Прыжок" },
 ];
 
 const COLOR_MODES: { id: FlatColorMode; label: string }[] = [
@@ -59,12 +61,14 @@ export function FlatControls({
 }: FlatControlsProps) {
   const [stop, setStop] = useState<"a" | "b">("a");
   const editingB = params.colorMode === "gradient" && stop === "b";
-  const look = `${params.color}|${params.colorB}|${params.colorMode}|${params.fill}|${params.eyes}|${params.mood}|${params.eyeSize}`;
+  const look = `${params.color}|${params.colorB}|${params.colorMode}|${params.gradientCenterX}|${params.gradientCenterY}|${params.fill}|${params.eyes}|${params.mood}|${params.eyeSize}|${params.shadowOn}`;
 
   const icons = useMemo(() => {
     const images = {} as Record<FlatSilhouetteId, string>;
     for (const shape of FLAT_SILHOUETTES) {
-      images[shape.id] = flatSvg({ ...params, silhouette: shape.id }, "icon", `icon-${shape.id}`);
+      images[shape.id] = flatSvg({ ...params, silhouette: shape.id }, "icon", `icon-${shape.id}`, {
+        neutralThumb: true,
+      });
     }
     return images;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,6 +136,20 @@ export function FlatControls({
           color={editingB ? params.colorB : params.color}
           onChange={(next) => onChange(editingB ? { colorB: next } : { color: next })}
         />
+        {params.colorMode === "gradient" ? (
+          <>
+            <Slider
+              label="Сдвиг X"
+              value={params.gradientCenterX}
+              onChange={(gradientCenterX) => onChange({ gradientCenterX })}
+            />
+            <Slider
+              label="Сдвиг Y"
+              value={params.gradientCenterY}
+              onChange={(gradientCenterY) => onChange({ gradientCenterY })}
+            />
+          </>
+        ) : null}
       </Field>
 
       <Field label="Заливка">
@@ -141,6 +159,18 @@ export function FlatControls({
       <Field label="Движение">
         <SegmentControl layout="chips" options={IDLES} value={params.idle} onChange={(idle) => onChange({ idle })} />
         <Slider label="Скорость" value={params.speed} onChange={(speed) => onChange({ speed })} />
+        <Slider
+          label="Масштаб"
+          display={params.zoom < 0.94 ? "Ближе" : params.zoom > 1.06 ? "Дальше" : "Средне"}
+          value={(params.zoom - 0.82) / 0.36}
+          onChange={(unit) => onChange({ zoom: 0.82 + unit * 0.36 })}
+        />
+        <Toggle
+          label="Тень"
+          hint="Мягкая под формой"
+          on={params.shadowOn}
+          onClick={() => onChange({ shadowOn: !params.shadowOn })}
+        />
       </Field>
 
       <section className="card mt-auto">
@@ -155,6 +185,20 @@ export function FlatControls({
         {error ? <p className="error">{error}</p> : null}
       </section>
     </div>
+  );
+}
+
+function Toggle({ label, hint, on, onClick }: { label: string; hint: string; on: boolean; onClick: () => void }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick} className="switch-row">
+      <span className="switch-text">
+        <span className="t">{label}</span>
+        <span className="h">{hint}</span>
+      </span>
+      <span className="ios" aria-hidden="true">
+        <span className="knob" />
+      </span>
+    </button>
   );
 }
 
