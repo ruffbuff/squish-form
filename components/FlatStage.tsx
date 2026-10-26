@@ -188,7 +188,7 @@ function FlatMotionStyle() {
       .squish-flat-sleep-eyes,
       .squish-flat-wow-eyes {
         animation-duration: var(--squish-flat-dur, 3.2s);
-        animation-timing-function: ease-in-out;
+        animation-timing-function: var(--squish-flat-ease, ease-in-out);
         animation-iteration-count: infinite;
       }
       .squish-flat-breathe { animation-name: squish-flat-breathe; }
@@ -283,6 +283,16 @@ function FlatMotionStyle() {
         .squish-flat-sleep-eyes,
         .squish-flat-wow-eyes,
         .squish-flat-edge { animation: none; }
+        /* Keep the 2.5D read without looping: a fixed three-quarter pose and
+           an offset shadow replace breathe/float/spin/bounce. */
+        .squish-flat-card { transform: rotateX(-5deg) rotateY(-14deg); }
+        .squish-flat-shade-breathe,
+        .squish-flat-shade-float,
+        .squish-flat-shade-spin,
+        .squish-flat-shade-bounce {
+          transform: translate(-3%, 2%) scale(0.97);
+          opacity: 0.8;
+        }
       }
     `}</style>
   );

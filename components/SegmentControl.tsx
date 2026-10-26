@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useGridNav } from "@/components/useGridNav";
 
 export type SegmentOption<T extends string> = { id: T; label: string };
 
@@ -38,6 +39,7 @@ export function SegmentControl<T extends string>({
   const btnRefs = useRef(new Map<string, HTMLButtonElement>());
   const [thumb, setThumb] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const reducedMotion = usePrefersReducedMotion();
+  const rowNav = useGridNav(options.length);
 
   const updateThumb = useCallback(() => {
     const root = rootRef.current;
@@ -69,7 +71,7 @@ export function SegmentControl<T extends string>({
   const rootClass = ["segment", layout === "chips" ? "segment--chips" : "", className].filter(Boolean).join(" ");
 
   return (
-    <div ref={rootRef} className={rootClass} role="group" aria-label={ariaLabel}>
+    <div ref={rootRef} className={rootClass} role="group" aria-label={ariaLabel} onKeyDown={rowNav}>
       {thumb ? (
         <span
           className="segment-thumb"

@@ -8,6 +8,7 @@ import { FlatControls } from "@/components/FlatControls";
 import { FlatStage } from "@/components/FlatStage";
 import { ModeSwitch } from "@/components/ModeSwitch";
 import { FpsOverlay } from "@/components/FpsOverlay";
+import { statusLine } from "@/lib/a11yStatus";
 import { downloadFlatPng, downloadFlatSvg } from "@/lib/flatExport";
 import { randomizeFlat } from "@/lib/flatRandom";
 import { thumbFor3d, thumbForFlat } from "@/lib/historyThumb";
@@ -323,6 +324,13 @@ export default function Page() {
         {notice ? (
           <p className="toast pointer-events-none absolute bottom-4 left-4 z-10">{notice}</p>
         ) : null}
+        <p className="sr-only" role="status" aria-live="polite">
+          {statusLine(
+            mode,
+            mode === "flat" ? flat.silhouette : params.silhouette,
+            mode === "flat" ? flat.mood : params.mood,
+          )}
+        </p>
       </section>
       <aside className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--line)] bg-[var(--panel)] md:h-dvh md:w-[380px] md:flex-none md:border-t-0 md:border-l">
         <div className="shrink-0 border-b border-[var(--line)] px-4 py-3">
