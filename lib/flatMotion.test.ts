@@ -5,6 +5,7 @@ import {
   FLAT_MIN_DURATION,
   flatDuration,
   flatDurationSeconds,
+  flatEasing,
   flatEyeDuration,
 } from "./flatMotion";
 import { flatLayers } from "./flatSvg";
@@ -44,6 +45,34 @@ describe("flat motion clock", () => {
         expect(seconds).toBeCloseTo(base * FLAT_EYE_MULTIPLIER[mood], 2);
       }
     }
+  });
+
+  it("maps smoothness to a valid non-linear easing curve", () => {
+    const linear = flatEasing(0);
+    const soft = flatEasing(1);
+    expect(linear).toMatch(/^cubic-bezier\(/);
+    expect(soft).toMatch(/^cubic-bezier\(/);
+    expect(linear).not.toBe(soft);
+    for (const value of [0, 0.25, 0.5, 0.75, 1]) {
+      const numbers = flatEasing(value)
+        .replace(/[^0-9.,]/g, "")
+        .split(",")
+        .map(Number);
+      expect(numbers).toHaveLength(4);
+      for (const number of numbers) {
+        expect(Number.isFinite(number)).toBe(true);
+      }
+      // Control x values must stay in [0, 1] or CSS rejects the curve.
+      expect(numbers[0]).toBeGreaterThanOrEqual(0);
+      expect(numbers[0]).toBeLessThanOrEqual(1);
+      expect(numbers[2]).toBeGreaterThanOrEqual(0);
+      expect(numbers[2]).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("clamps smoothness outside 0–1", () => {
+    expect(flatEasing(-2)).toBe(flatEasing(0));
+    expect(flatEasing(3)).toBe(flatEasing(1));
   });
 
   it("uses the same clock in flatLayers", () => {

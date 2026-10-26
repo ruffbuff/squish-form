@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, type CSSProperties } from "react";
-import { flatEyeDuration } from "@/lib/flatMotion";
+import { flatEasing, flatEyeDuration } from "@/lib/flatMotion";
 import { flatLayers } from "@/lib/flatSvg";
 import type { FlatParams } from "@/lib/flatTypes";
 
@@ -49,6 +49,7 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
         style={
           {
             "--squish-flat-dur": layers.duration,
+            "--squish-flat-ease": flatEasing(params.smoothness),
             "--squish-flat-calm-dur": flatEyeDuration(params.speed, "calm"),
             "--squish-flat-joy-dur": flatEyeDuration(params.speed, "joy"),
             "--squish-flat-sleep-dur": flatEyeDuration(params.speed, "sleep"),
