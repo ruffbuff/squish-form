@@ -1,4 +1,5 @@
 import { flatEyeOutline } from "./flatEyes";
+import { flatDuration } from "./flatMotion";
 import { FLAT_EXPORT_PX, FLAT_VIEW, type FlatParams } from "./flatTypes";
 import { flatSilhouette, projectLocal, type Pt, type SilhouetteGeometry } from "./flatShapes";
 
@@ -47,7 +48,7 @@ export function flatLayers(params: FlatParams, prefix: string): FlatLayers {
     eyes: wrap("", parts.eyes, "stage", true),
     motionOrigin: parts.motionOrigin,
     eyeOrigin: parts.eyeOrigin,
-    duration: durationOf(params.speed),
+    duration: flatDuration(params.speed),
     label: labelFor(params),
   };
 }
@@ -260,10 +261,6 @@ function origin(x: number, y: number) {
   return `${px.toFixed(2)}% ${py.toFixed(2)}%`;
 }
 
-function durationOf(speed: number) {
-  const seconds = 4.4 - clamp(speed, 0, 1) * 2.6;
-  return `${seconds.toFixed(2)}s`;
-}
 
 function paintHex(value: string) {
   return /^#[0-9a-fA-F]{6}$/.test(value) ? value.toLowerCase() : "#ff8a1f";

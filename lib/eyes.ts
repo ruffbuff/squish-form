@@ -190,11 +190,19 @@ export function eyeQuaternion(anchor: EyeAnchor, tilt: number, target = new THRE
  * A ray along -Z used to land on the brow, and the old offset then
  * pushed a full sphere out along that tilted normal.
  */
+// Anchors are immutable after placement. Smooth hull generation is expensive
+// (144×108 sphere), and the stage, still preview and silhouette grid all ask
+// for the same silhouette, so build each pair once per session.
+const anchorCache = new Map<SilhouetteId, PlacedEyes>();
+
 /** Eye anchors from the smooth hull so poly facets do not shove eyes sideways. */
 export function placeEyesOnSilhouette(id: SilhouetteId): PlacedEyes {
+  const cached = anchorCache.get(id);
+  if (cached) return cached;
   const smooth = createSilhouetteGeometry(id, "smooth");
   const placed = placeEyes(smooth, id);
   smooth.dispose();
+  anchorCache.set(id, placed);
   return placed;
 }
 
