@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useGridNav } from "@/components/useGridNav";
 import { ColorPicker } from "@/components/ColorPicker";
 import { RandomHistory } from "@/components/RandomHistory";
@@ -8,6 +8,7 @@ import { RandomSection } from "@/components/RandomSection";
 import { SegmentControl } from "@/components/SegmentControl";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RANDOM_SCOPE_LABELS_FLAT, type RandomScopeFlat } from "@/lib/randomScopes";
+import { FLAT_PRESETS, applyFlatPreset, encodeFlatPreset } from "@/lib/flatPresets";
 import { FLAT_SHOWCASE } from "@/lib/flatShowcase";
 import { FLAT_SILHOUETTES } from "@/lib/flatShapes";
 import { flatSvg } from "@/lib/flatSvg";
@@ -85,7 +86,52 @@ export function FlatControls({
   onDownloadPng,
 }: FlatControlsProps) {
   const [stop, setStop] = useState<"a" | "b">("a");
+  const [share, setShare] = useState<"idle" | "copied" | "error">("idle");
   const gridNav = useGridNav(4);
+  const presetNav = useGridNav(FLAT_PRESETS.length);
+
+  useEffect(() => {
+    if (share === "idle") return;
+    const timer = window.setTimeout(() => setShare("idle"), 1800);
+    return () => window.clearTimeout(timer);
+  }, [share]);
+
+  const presetHash = (next: FlatParams) => `#p=${encodeFlatPreset(next)}`;
+
+  const choosePreset = (index: number) => {
+    const preset = FLAT_PRESETS[index];
+    if (!preset) return;
+    const next = applyFlatPreset(params, preset);
+    onChange(preset.params);
+    window.history.replaceState(null, "", presetHash(next));
+    setShare("idle");
+  };
+
+  const shareLink = async () => {
+    const url = `${window.location.origin}${window.location.pathname}${presetHash(params)}`;
+    window.history.replaceState(null, "", presetHash(params));
+    try {
+      await navigator.clipboard.writeText(url);
+      setShare("copied");
+    } catch {
+      // Older Telegram WebViews have no clipboard API; the execCommand
+      // fallback still copies from a temporary textarea.
+      try {
+        const area = document.createElement("textarea");
+        area.value = url;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand("copy");
+        area.remove();
+        setShare(ok ? "copied" : "error");
+      } catch {
+        setShare("error");
+      }
+    }
+  };
   const editingB = params.colorMode === "gradient" && stop === "b";
   const look = `${params.color}|${params.colorB}|${params.colorMode}|${params.gradientCenterX}|${params.gradientCenterY}|${params.fill}|${params.eyes}|${params.mood}|${params.eyeSize}|${params.shadowOn}`;
   const thumbLook = `${params.eyes}|${params.mood}|${params.eyeSize}`;
@@ -132,6 +178,38 @@ export function FlatControls({
         onScopeChange={onScopeChange}
         history={<RandomHistory items={randomHistory} onPick={onHistoryPick} />}
       />
+
+      <Field label="Пресеты">
+        <div
+          className="preset-row"
+          role="group"
+          aria-label="Пресеты образа"
+          onKeyDown={presetNav}
+        >
+          {FLAT_PRESETS.map((preset, index) => (
+            <button
+              key={preset.id}
+              type="button"
+              className="preset-chip"
+              onClick={() => choosePreset(index)}
+            >
+              <span
+                className="preset-dot"
+                style={{
+                  background: `linear-gradient(135deg, ${preset.params.color}, ${preset.params.colorB})`,
+                }}
+              />
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <div className="preset-share">
+          <button type="button" className="share-btn" onClick={shareLink}>
+            {share === "copied" ? "Ссылка скопирована" : share === "error" ? "Не удалось скопировать" : "Поделиться образом"}
+          </button>
+          <span className="preset-hint">Ссылка сохраняет силуэт, цвета, глаза и движение</span>
+        </div>
+      </Field>
 
       <Field label="Силуэт">
         <div
