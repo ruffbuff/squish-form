@@ -21,6 +21,8 @@ const FRAMES: Record<FlatFrame, FrameStyle> = {
 
 export type FlatLayers = {
   shadow: string;
+  /** Extruded side wall behind the card, so quarter turns read as 2.5D. */
+  edge: string;
   body: string;
   eyes: string;
   /** CSS transform-origin for breathe / float, as percentages of the frame. */
@@ -37,13 +39,14 @@ export type FlatRenderOptions = {
 
 export function flatSvg(params: FlatParams, frame: FlatFrame, prefix: string, options?: FlatRenderOptions) {
   const parts = renderParts(params, frame, prefix, options);
-  return wrap(parts.defs, parts.shadow + parts.body + parts.eyes, frame, false, labelFor(params));
+  return wrap(parts.defs, parts.shadow + parts.edge + parts.body + parts.eyes, frame, false, labelFor(params));
 }
 
 export function flatLayers(params: FlatParams, prefix: string): FlatLayers {
   const parts = renderParts(params, "stage", prefix);
   return {
     shadow: wrap(parts.shadowDefs, parts.shadow, "stage", true),
+    edge: wrap(parts.edgeDefs, parts.edge, "stage", true),
     body: wrap(parts.bodyDefs, parts.body, "stage", true),
     eyes: wrap("", parts.eyes, "stage", true),
     motionOrigin: parts.motionOrigin,
@@ -73,7 +76,9 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _opti
   const clipId = `${safe}-clip`;
   const blurId = `${safe}-blur`;
   const speckId = `${safe}-speck`;
+  const edgeId = `${safe}-edge`;
   const paint = fillAttrs(params, fillId);
+  const edge = edgeLayer(shape.body, params, edgeId);
 
   const defs = [
     `<filter id="${blurId}" filterUnits="userSpaceOnUse" x="${FLAT_VIEW.x}" y="${FLAT_VIEW.y}" width="${FLAT_VIEW.w}" height="${FLAT_VIEW.h}">`,
@@ -85,10 +90,10 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _opti
     showGloss ? radial(hotId, "#ffffff", 0.9, 0) : "",
     showShade ? radial(shadeId, "#000000", params.fill === "matte" ? 0.3 : 0.22, 0) : "",
     showSpeckle ? specklePattern(speckId, paintHex(params.colorB)) : "",
+    edge.def,
   ].join("");
 
-  const overlays = [
-    showGloss ? `<path d="${linePath(shape.gloss)}" fill="url(#${glossId})"/>` : "",
+  const overlays = [    showGloss ? `<path d="${linePath(shape.gloss)}" fill="url(#${glossId})"/>` : "",
     showGloss ? `<path d="${linePath(shape.glossHot)}" fill="url(#${hotId})"/>` : "",
     showShade ? `<path d="${linePath(shape.shade)}" fill="url(#${shadeId})"/>` : "",
     showSpeckle ? `<rect x="${FLAT_VIEW.x}" y="${FLAT_VIEW.y}" width="${FLAT_VIEW.w}" height="${FLAT_VIEW.h}" fill="url(#${speckId})" opacity="0.42"/>` : "",
@@ -100,6 +105,7 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _opti
   return {
     defs,
     shadowDefs: `<filter id="${blurId}" filterUnits="userSpaceOnUse" x="${FLAT_VIEW.x}" y="${FLAT_VIEW.y}" width="${FLAT_VIEW.w}" height="${FLAT_VIEW.h}"><feGaussianBlur stdDeviation="${style.blur}"/></filter>`,
+    edgeDefs: edge.def,
     bodyDefs: [
       paint.def,
       `<clipPath id="${clipId}"><path d="${body}"/></clipPath>`,
@@ -111,6 +117,7 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _opti
     shadow: params.shadowOn
       ? framed(frameShift, `<path d="${shadowPath}" fill="#120c0a" opacity="0.28" filter="url(#${blurId})"/>`)
       : "",
+    edge: framed(frameShift, edge.svg),
     body: framed(
       frameShift,
       `<g clip-path="url(#${clipId})"><path d="${body}" fill="${paint.fill}"/><g>${overlays}</g></g>`,
@@ -121,8 +128,49 @@ function renderParts(params: FlatParams, frame: FlatFrame, prefix: string, _opti
   };
 }
 
-function wrap(defs: string, inner: string, frame: FlatFrame, hidden: boolean, label?: string) {
-  const style = FRAMES[frame];
+/** Thickness in viewBox units. Offset points away from the light, so the
+ * wall sits on the lower-right and the body keeps a lit top-left face. */
+const EDGE_DX = 3.6;
+const EDGE_DY = 4.6;
+
+/**
+ * A shallow extrusion of the silhouette: the whole outline is drawn again,
+ * shifted away from the light. The body hides it at rest except for a thin
+ * lit rim; when the turntable narrows the face at quarter turns the same
+ * plate fills the gap and reads as a solid side wall.
+ */
+function edgeLayer(body: Pt[], params: FlatParams, id: string) {
+  const primary = paintHex(params.color);
+  const secondary = params.colorMode === "gradient" ? paintHex(params.colorB) : primary;
+  const lit = mix(primary, "#ffffff", 0.32);
+  const base = mix(mix(primary, secondary, 0.5), "#000000", 0.34);
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of body) {
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+  }
+  const shift = ([x, y]: Pt): Pt => [x + EDGE_DX, y + EDGE_DY];
+  const outer = linePath(body.map(shift));
+  const def = [
+    `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${fmt(minX)}" y1="${fmt(minY)}" x2="${fmt(maxX + EDGE_DX)}" y2="${fmt(maxY + EDGE_DY)}">`,
+    `<stop offset="0%" stop-color="${lit}"/>`,
+    `<stop offset="55%" stop-color="${base}"/>`,
+    `<stop offset="100%" stop-color="${mix(base, "#000000", 0.22)}"/>`,
+    `</linearGradient>`,
+  ].join("");
+  const svg = [
+    `<path d="${outer}" fill="url(#${id})"/>`,
+    `<path d="${outer}" fill="none" stroke="${lit}" stroke-opacity="0.42" stroke-width="1.1" stroke-linejoin="round"/>`,
+  ].join("");
+  return { def, svg };
+}
+
+function wrap(defs: string, inner: string, frame: FlatFrame, hidden: boolean, label?: string) {  const style = FRAMES[frame];
   const xml = frame === "export" ? `<?xml version="1.0" encoding="UTF-8"?>` : "";
   const labelled = label ? ` role="img" aria-label="${escapeAttr(label)}"` : hidden ? ` aria-hidden="true"` : "";
   return [
