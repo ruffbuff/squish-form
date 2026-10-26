@@ -59,14 +59,21 @@ Next.js App Router, TypeScript, Tailwind CSS, React Three Fiber, drei, three.js.
 
 ## Versioning and tests
 
-The working tree uses version `0.0.0` (unreleased). Release tags use semver, starting at `v0.1.0`. Every commit subject starts with the version it belongs to, for example:
+We use standard semantic versioning: `MAJOR.MINOR.PATCH`.
+
+- **PATCH** (`0.0.1` → `0.0.2`) — bug fixes, small polish and refactors that do not add a user-facing feature.
+- **MINOR** (`0.0.x` → `0.1.0`) — a new feature or a meaningful improvement. Patch resets to `0`.
+- **MAJOR** (`0.x` → `1.0.0`) — a whole new release, a breaking change or public launch. Minor and patch reset to `0`.
+
+Every commit subject starts with the version it belongs to, and the version is bumped in `package.json` and `package-lock.json` in the same commit:
 
 ```text
-v0.0.0: symmetric eye anchors and geometry tests
+v0.0.1: patch fixes
 v0.1.0: animated Flat export
+v1.0.0: public launch
 ```
 
-When a release is cut, bump the version in `package.json` and the README at the same time as the tag.
+Earlier commits used `v0.0.0` as a placeholder during the first unreleased iteration; that history is kept as-is. Tags follow the same version (`v0.1.0`).
 
 ```bash
 npm test         # unit tests (silhouettes, eye anchors, eye fit)
