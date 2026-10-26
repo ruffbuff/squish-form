@@ -24,6 +24,7 @@ const sample: FlatParams = {
   gradientCenterX: 0.7,
   gradientCenterY: 0.25,
   shadowOn: false,
+  follow: true,
 };
 
 describe("flat preset links", () => {
@@ -46,6 +47,7 @@ describe("flat preset links", () => {
       gradientCenterX: 0.7,
       gradientCenterY: 0.25,
       shadowOn: false,
+      follow: true,
     });
     expect(decoded).not.toHaveProperty("zoom");
   });

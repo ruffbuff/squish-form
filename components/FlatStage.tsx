@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, useRef, type CSSProperties } from "react";
 import { flatEasing, flatEyeDuration } from "@/lib/flatMotion";
 import { flatLayers } from "@/lib/flatSvg";
 import type { FlatParams } from "@/lib/flatTypes";
@@ -20,6 +20,32 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
   const shade = shadeClass(params.idle);
   const eyes = moodEyeClass(params.mood);
   const zoom = clamp(params.zoom, 0.82, 1.18);
+  const lookRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const node = lookRef.current;
+    if (!node) return;
+    const reset = () => {
+      node.style.setProperty("--look-x", "0deg");
+      node.style.setProperty("--look-y", "0deg");
+    };
+    if (!params.follow) {
+      reset();
+      return;
+    }
+    const move = (event: PointerEvent) => {
+      const x = (event.clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
+      const y = (event.clientY / Math.max(window.innerHeight, 1)) * 2 - 1;
+      node.style.setProperty("--look-x", `${(x * 11).toFixed(2)}deg`);
+      node.style.setProperty("--look-y", `${(-y * 7).toFixed(2)}deg`);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerleave", reset);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerleave", reset);
+    };
+  }, [params.follow]);
 
   useEffect(() => {
     if (!onFpsSample) return;
@@ -66,32 +92,24 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
             dangerouslySetInnerHTML={{ __html: layers.shadow }}
           />
         ) : null}
-        {params.idle === "spin" ? (
-          <div className="squish-flat-edge absolute inset-0" aria-hidden="true">
-            <div
-              className="squish-flat-edge-side"
-              dangerouslySetInnerHTML={{ __html: backLayers.body }}
-            />
-            <div
-              className="squish-flat-edge-light"
-              dangerouslySetInnerHTML={{ __html: backLayers.body }}
-            />
-          </div>
-        ) : null}
-        <div
-          className={`squish-flat-card absolute inset-0 ${motion}`}
-          style={{ transformOrigin: layers.motionOrigin }}
-        >
-          <div className="squish-flat-face squish-flat-face--front">
-            <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: layers.body }} />
-            <div
-              className={`absolute inset-0 ${eyes}`}
-              style={{ transformOrigin: layers.eyeOrigin }}
-              dangerouslySetInnerHTML={{ __html: layers.eyes }}
-            />
-          </div>
-          <div className="squish-flat-face squish-flat-face--back" aria-hidden="true">
-            <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: backLayers.body }} />
+        <div ref={lookRef} className="squish-flat-look absolute inset-0">
+          <div
+            className={`squish-flat-card absolute inset-0 ${motion}`}
+            style={{ transformOrigin: layers.motionOrigin }}
+          >
+            <div className="squish-flat-face squish-flat-face--front">
+              <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: layers.body }} />
+              <div
+                className={`squish-flat-eyes absolute inset-0 ${eyes} ${
+                  params.idle === "spin" ? "squish-flat-spin-eyes" : ""
+                }`}
+                style={{ transformOrigin: layers.eyeOrigin }}
+                dangerouslySetInnerHTML={{ __html: layers.eyes }}
+              />
+            </div>
+            <div className="squish-flat-face squish-flat-face--back" aria-hidden="true">
+              <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: backLayers.body }} />
+            </div>
           </div>
         </div>
       </div>
@@ -147,34 +165,40 @@ function FlatMotionStyle() {
         transform: rotateY(180deg);
         filter: brightness(0.88) saturate(0.94);
       }
-      .squish-flat-edge {
-        opacity: 0;
-        pointer-events: none;
-        animation: squish-flat-edge var(--squish-flat-dur, 3.2s) linear infinite;
+      .squish-flat-look {
+        transform-style: preserve-3d;
+        transform: rotateY(var(--look-x, 0deg)) rotateX(var(--look-y, 0deg));
+        transition: transform 0.22s ease-out;
+        will-change: transform;
       }
-      .squish-flat-edge > div {
-        position: absolute;
-        inset: 0;
-        transform-origin: 50% 50%;
+      .squish-flat-spin .squish-flat-face--front,
+      .squish-flat-spin .squish-flat-face--back,
+      .squish-flat-spin-eyes {
+        animation-duration: var(--squish-flat-dur, 3.2s);
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
       }
-      .squish-flat-edge-side {
-        transform: scaleX(0.078);
-        filter: brightness(0.7) saturate(0.92);
+      .squish-flat-spin .squish-flat-face--front { animation-name: squish-flat-spin-front; }
+      .squish-flat-spin .squish-flat-face--back {
+        animation-name: squish-flat-spin-back;
+        transform: scaleX(-1);
+        backface-visibility: visible;
       }
-      .squish-flat-edge-light {
-        transform: scaleX(0.03);
-        opacity: 0.75;
-        filter: brightness(1.18) saturate(1.04);
+      .squish-flat-spin-eyes { animation-name: squish-flat-spin-eyes; }
+      @keyframes squish-flat-spin-front {
+        0%, 22% { opacity: 1; }
+        28%, 72% { opacity: 0; }
+        78%, 100% { opacity: 1; }
       }
-      .squish-flat-edge svg { display: block; height: 100%; width: 100%; }
-      @keyframes squish-flat-edge {
-        0%, 21% { opacity: 0; }
-        24% { opacity: 0.92; }
-        27% { opacity: 0.92; }
-        30%, 70% { opacity: 0; }
-        73% { opacity: 0.92; }
-        76% { opacity: 0.92; }
-        79%, 100% { opacity: 0; }
+      @keyframes squish-flat-spin-back {
+        0%, 22% { opacity: 0; }
+        28%, 72% { opacity: 1; }
+        78%, 100% { opacity: 0; }
+      }
+      @keyframes squish-flat-spin-eyes {
+        0%, 18% { opacity: 1; }
+        24%, 76% { opacity: 0; }
+        82%, 100% { opacity: 1; }
       }
       .squish-flat-breathe,
       .squish-flat-float,
@@ -225,15 +249,26 @@ function FlatMotionStyle() {
         0%, 100% { transform: translate3d(0, 0, 0) rotateX(1.5deg) rotateZ(-1.2deg); }
         50% { transform: translate3d(0, -26px, 22px) rotateX(-4deg) rotateZ(1.2deg); }
       }
+      /* A 2.5D turntable: the silhouette never collapses to a line. It narrows
+         to 45% at the quarter turns, swaps to the mirrored back, and widens
+         again. That reads as a full 360° while the shape stays visible. */
       @keyframes squish-flat-spin {
-        0% { transform: rotateX(-7deg) rotateY(0deg); }
-        100% { transform: rotateX(-7deg) rotateY(360deg); }
+        0% { transform: rotateX(-6deg) rotateZ(0deg) translateX(0) scaleX(1); }
+        25% { transform: rotateX(-4deg) rotateZ(-1.2deg) translateX(5px) scaleX(0.45); }
+        50% { transform: rotateX(-3deg) rotateZ(0deg) translateX(0) scaleX(1); }
+        75% { transform: rotateX(-4deg) rotateZ(1.2deg) translateX(-5px) scaleX(0.45); }
+        100% { transform: rotateX(-6deg) rotateZ(0deg) translateX(0) scaleX(1); }
       }
       @keyframes squish-flat-bounce {
         0%, 100% { transform: translate3d(0, 0, 0) rotateX(-2deg) scale3d(1, 1, 1); }
-        30% { transform: translate3d(0, -14px, 8px) rotateX(-9deg) scale3d(0.97, 1.07, 1); }
-        46% { transform: translate3d(0, 0, 0) rotateX(2deg) scale3d(1.09, 0.9, 1); }
-        62% { transform: translate3d(0, -20px, 12px) rotateX(-6deg) scale3d(0.99, 1.03, 1); }
+        8% { transform: translate3d(0, 0, 0) rotateX(-1deg) scale3d(1.12, 0.86, 1); }
+        16% { transform: translate3d(0, -20px, 10px) rotateX(-7deg) scale3d(0.94, 1.09, 1); }
+        34% { transform: translate3d(0, -68px, 26px) rotateX(-5deg) scale3d(0.99, 1.02, 1); }
+        46% { transform: translate3d(0, -80px, 30px) rotateX(-2deg) scale3d(1, 1, 1); }
+        58% { transform: translate3d(0, -34px, 14px) rotateX(2deg) scale3d(1.02, 0.99, 1); }
+        66% { transform: translate3d(0, 0, 0) rotateX(-1deg) scale3d(1.16, 0.82, 1); }
+        76% { transform: translate3d(0, -9px, 4px) rotateX(1deg) scale3d(0.98, 1.03, 1); }
+        86% { transform: translate3d(0, 0, 0) rotateX(-1deg) scale3d(1.05, 0.95, 1); }
       }
       @keyframes squish-flat-shade-breathe {
         0%, 100% { transform: scale(1); opacity: 1; }
@@ -244,14 +279,17 @@ function FlatMotionStyle() {
         50% { transform: translateY(10px) scaleX(0.8); opacity: 0.45; }
       }
       @keyframes squish-flat-shade-spin {
-        0%, 100% { transform: rotate(-4deg) scale(0.98); opacity: 0.85; }
-        25% { transform: rotate(0deg) scaleX(0.72); opacity: 0.65; }
-        50% { transform: rotate(4deg) scale(0.98); opacity: 0.85; }
-        75% { transform: rotate(0deg) scaleX(0.72); opacity: 0.65; }
+        0%, 100% { transform: scaleX(1); opacity: 0.85; }
+        25% { transform: scaleX(0.6) translateX(4px); opacity: 0.62; }
+        50% { transform: scaleX(0.96); opacity: 0.85; }
+        75% { transform: scaleX(0.6) translateX(-4px); opacity: 0.62; }
       }
       @keyframes squish-flat-shade-bounce {
-        0%, 100% { transform: scale(1); opacity: 0.85; }
-        35% { transform: scale(0.88, 0.92) translateY(6px); opacity: 0.5; }
+        0%, 8%, 100% { transform: scale(1); opacity: 0.85; }
+        16% { transform: scale(0.96, 0.98); opacity: 0.8; }
+        46% { transform: scale(0.68, 0.76) translateY(8px); opacity: 0.32; }
+        66% { transform: scale(1.12, 0.86) translateY(2px); opacity: 0.9; }
+        86% { transform: scale(1, 0.98); opacity: 0.84; }
       }
       @keyframes squish-flat-blink {
         0%, 82%, 100% { transform: scaleY(1); }
@@ -283,7 +321,12 @@ function FlatMotionStyle() {
         .squish-flat-joy-eyes,
         .squish-flat-sleep-eyes,
         .squish-flat-wow-eyes,
-        .squish-flat-edge { animation: none; }
+        .squish-flat-spin .squish-flat-face--front,
+        .squish-flat-spin .squish-flat-face--back,
+        .squish-flat-spin-eyes { animation: none; }
+        .squish-flat-look { transition: none; transform: none; }
+        .squish-flat-spin .squish-flat-face--front { opacity: 1; }
+        .squish-flat-spin .squish-flat-face--back { opacity: 0; }
         /* Keep the 2.5D read without looping: a fixed three-quarter pose and
            an offset shadow replace breathe/float/spin/bounce. */
         .squish-flat-card { transform: rotateX(-5deg) rotateY(-14deg); }

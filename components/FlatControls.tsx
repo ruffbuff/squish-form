@@ -308,6 +308,12 @@ export function FlatControls({
           on={params.shadowOn}
           onClick={() => onChange({ shadowOn: !params.shadowOn })}
         />
+        <Toggle
+          label="За курсором"
+          hint="Лёгкий наклон к курсору"
+          on={params.follow}
+          onClick={() => onChange({ follow: !params.follow })}
+        />
       </Field>
 
       <Field label="Качество">

@@ -129,6 +129,7 @@ const KEY_CODES: Record<Exclude<keyof FlatParams, "zoom">, string> = {
   gradientCenterX: "x",
   gradientCenterY: "y",
   shadowOn: "h",
+  follow: "g",
 };
 
 const CODE_KEYS = Object.fromEntries(
@@ -187,7 +188,7 @@ function coerce(key: Exclude<keyof FlatParams, "zoom">, raw: unknown): unknown {
   if (key === "idle") return typeof raw === "string" && IDLES.has(raw) ? raw : undefined;
   if (key === "colorMode") return typeof raw === "string" && MODES.has(raw) ? raw : undefined;
   if (key === "color" || key === "colorB") return typeof raw === "string" && HEX.test(raw) ? raw : undefined;
-  if (key === "shadowOn") return typeof raw === "boolean" ? raw : undefined;
+  if (key === "shadowOn" || key === "follow") return typeof raw === "boolean" ? raw : undefined;
   if (typeof raw !== "number" || !Number.isFinite(raw)) return undefined;
   if (key === "eyeSize") return clamp(raw, 0.55, 1.7);
   if (key === "speed" || key === "smoothness") return clamp(raw, 0, 1);
