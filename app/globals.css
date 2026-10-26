@@ -251,10 +251,18 @@ input:focus-visible {
   }
 }
 
+/* Column count lives on --sil-columns. Keyboard nav reads the computed
+   tracks, so a breakpoint that overrides the variable stays aligned with
+   the arrows. 3D is 3; Flat adds .sil-grid--flat. */
 .sil-grid {
+  --sil-columns: 3;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(var(--sil-columns), 1fr);
   gap: 6px;
+}
+
+.sil-grid--flat {
+  --sil-columns: 4;
 }
 
 .sil-grid button {

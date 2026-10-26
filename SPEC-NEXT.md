@@ -3,6 +3,8 @@
 Status: synced to the code at `v0.3.1` (this document is the `v0.3.2` docs bump).
 The previous draft described the tree just after Flat 2.5D motion landed (`cursor/flat-25d-motion-eye-fit`, PR #11). PRs #12–#22 shipped most of that draft. This file is the ordered list of what is left.
 
+Task 1 (3D silhouette keyboard columns) shipped in `v0.3.3`. The next PR starts at task 2. Task numbers below stay as they are.
+
 Hand the backlog out from the top. Each item is one PR. Do not start a later item in the same PR.
 
 ## Goals
@@ -44,6 +46,7 @@ These are the facts the old draft had wrong or had not caught up with.
 | Two eye styles per mode, with mood shapes. 3D: dots and ovals (`eyeMoodShape`). Flat: dots and capsules (`flatEyeOutline`). | `lib/eyes.ts`, `lib/flatEyes.ts`. |
 | Focus ring is an outer outline; the selected silhouette tile is a filled border. | `button:focus-visible` and `.sil-grid button:focus-visible` in `app/globals.css`. PR #13. |
 | Arrow keys move focus inside grids. Enter and Space activate the focused `<button>`. Home and End jump to the ends. Flat silhouettes use 4 columns, matching the grid. Mood, material, and motion use `SegmentControl` as one row. | `lib/gridNav.ts`, `components/useGridNav.ts`, `lib/gridNav.test.ts`. PR #14, `73c58e9`. |
+| 3D silhouette arrows follow the 3-column grid (8 tiles, ArrowDown moves by 3). Flat stays at 4. A CSS grid’s column count is the computed track list, so `--sil-columns` and the arrows cannot drift. Preset-chip wrap is still task 25. | `SILHOUETTE_GRID_COLUMNS` in `lib/gridNav.ts`, `.sil-grid` / `.sil-grid--flat` in `app/globals.css`, `components/SilhouettePicker.tsx`. `v0.3.3`. |
 | Polite live region announces mode, silhouette, and mood. | `statusLine` in `lib/a11yStatus.ts`, `app/page.tsx`. PR #14. |
 | `prefers-reduced-motion` in both modes. 3D freezes idle, eye loops, follow, and the contact shadow at `STILL_POSE` (time 0). Flat CSS stops every loop, drops cursor tilt, and holds `rotateX(-5deg) rotateY(-14deg)` with a static shadow. | `components/AvatarMesh.tsx`, `components/ContactShadow.tsx`, `lib/motion.ts`, `FlatStage` media query. 3D: PR #22, `897202b`. Flat pose: PR #14. |
 | Settings survive reload. | `squishform-mode`, 3D params, Flat params, and random scopes in `app/page.tsx`. |
@@ -56,11 +59,9 @@ These are the facts the old draft had wrong or had not caught up with.
 
 Do these in order. The first items are small and protect later eye and export work.
 
-### 1. Fix 3D silhouette keyboard columns
+### 1. Fix 3D silhouette keyboard columns — done (`v0.3.3`)
 
-`SilhouettePicker` calls `useGridNav(4)` while `.sil-grid` is `repeat(3, 1fr)`. Eight tiles, so ArrowDown lands on the wrong cell. Flat is already `repeat(4, 1fr)` with `useGridNav(4)`.
-
-Acceptance: the 3D picker passes 3 columns. A unit test on `nextGridIndex` covers an 8-tile, 3-column grid: ArrowDown from index 0 yields 3, and ArrowRight from index 2 yields nothing.
+`SilhouettePicker` passes `SILHOUETTE_GRID_COLUMNS` (3). `.sil-grid` sets `--sil-columns: 3`, and keyboard nav reads the computed tracks. ArrowDown on the eight tiles moves by 3; ArrowRight on index 2 stops. Flat is `.sil-grid--flat` with 4 columns. Preset-chip wrap is still task 25.
 
 ### 2. Seat-clearance test for 3D eyes
 
@@ -244,7 +245,7 @@ The numbers are the previous `SPEC-NEXT.md` sections.
 | 6.4 Hull cache | Done | PR #16. |
 | 6.5 Context loss | Partially done | `localStorage` holds the look. Restore is task 12. |
 | 7.1 Focus versus selected | Done | PR #13. |
-| 7.2 Keyboard grids | Partially done | Flat grid, mood row, and Enter/Space work. 3D columns are wrong. Task 1. Preset wrap is task 25. |
+| 7.2 Keyboard grids | Partially done | 3D and Flat silhouette grids match their columns (`v0.3.3`). Mood row is one line. Preset wrap is task 25. |
 | 7.3 Live region | Done | PR #14. |
 | 7.4 Reduced motion, both modes | Done | PR #22 and the Flat media query. The extra Flat breathe is task 6. |
 | 7.5 Eye contrast | Not started | Task 13. |
