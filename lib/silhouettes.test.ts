@@ -13,6 +13,24 @@ function bbox(id: SilhouetteId) {
   return { geometry, box, position };
 }
 
+describe("silhouette cache", () => {
+  it("hands out independent clones that survive disposal", () => {
+    const first = createSilhouetteGeometry("bud", "smooth");
+    const second = createSilhouetteGeometry("bud", "smooth");
+    expect(first).not.toBe(second);
+    first.computeBoundingBox();
+    second.computeBoundingBox();
+    expect(first.boundingBox!.getSize(new THREE.Vector3()).toArray()).toEqual(
+      second.boundingBox!.getSize(new THREE.Vector3()).toArray(),
+    );
+    first.dispose();
+    const third = createSilhouetteGeometry("bud", "smooth");
+    expect(third.attributes.position.count).toBeGreaterThan(0);
+    third.dispose();
+    second.dispose();
+  });
+});
+
 describe("silhouette geometry", () => {
   it.each(ids)("%s is centered, unit-fit and free of NaN", (id) => {
     const { geometry, box, position } = bbox(id);

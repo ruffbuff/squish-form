@@ -17,7 +17,7 @@ export const SILHOUETTES: { id: SilhouetteId; label: string }[] = [
  * Smooth uses a dense sphere with the seam welded so jelly stays round.
  * Poly is a coarse icosphere; the material draws it flat on purpose.
  */
-export function createSilhouetteGeometry(id: SilhouetteId, surface: SurfaceMode = "smooth"): THREE.BufferGeometry {
+function buildSilhouetteGeometry(id: SilhouetteId, surface: SurfaceMode): THREE.BufferGeometry {
   const source =
     surface === "poly" ? new THREE.IcosahedronGeometry(1, 2) : new THREE.SphereGeometry(1, 144, 108);
   const position = source.attributes.position;
@@ -35,6 +35,28 @@ export function createSilhouetteGeometry(id: SilhouetteId, surface: SurfaceMode 
   geometry.computeVertexNormals();
   centerAndFit(geometry, 1);
   return geometry;
+}
+
+// Rebuilding the dense smooth hull costs more than cloning it, and the
+// avatar, still preview, silhouette icons and eye anchors all request the
+// same few shapes. Keep one canonical copy and hand out disposable clones.
+const smoothCache = new Map<SilhouetteId, THREE.BufferGeometry>();
+
+/**
+ * Smooth geometry is cached per silhouette. Every call returns a new
+ * geometry that the caller owns and may dispose; the cached source is never
+ * handed out, so disposal cannot poison later requests.
+ */
+export function createSilhouetteGeometry(
+  id: SilhouetteId,
+  surface: SurfaceMode = "smooth",
+): THREE.BufferGeometry {
+  if (surface !== "smooth") return buildSilhouetteGeometry(id, surface);
+  const cached = smoothCache.get(id);
+  if (cached) return cached.clone();
+  const built = buildSilhouetteGeometry(id, "smooth");
+  smoothCache.set(id, built);
+  return built.clone();
 }
 
 function shapeVertex(id: SilhouetteId, vertex: THREE.Vector3): THREE.Vector3 {
