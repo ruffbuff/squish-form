@@ -43,6 +43,8 @@ export type FlatParams = {
   /** 0.82–1.18 viewport scale in the playground. Export uses 1. */
   zoom: number;
   shadowOn: boolean;
+  /** A slight 2.5D tilt that follows the pointer. */
+  follow: boolean;
 };
 
 export type PlayMode = "3d" | "flat";
@@ -65,6 +67,7 @@ export const FLAT_INITIAL: FlatParams = {
   gradientCenterY: 0.32,
   zoom: 1,
   shadowOn: true,
+  follow: false,
 };
 
 /** viewBox origin plus size. cx/cy are the SVG position of the local origin. */
