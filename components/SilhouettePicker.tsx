@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useGridNav } from "@/components/useGridNav";
 import { renderSilhouetteIcons } from "@/lib/silhouetteIcons";
 import { SILHOUETTES } from "@/lib/silhouettes";
 import type { SilhouetteId } from "@/lib/types";
@@ -12,6 +13,7 @@ type SilhouettePickerProps = {
 
 export function SilhouettePicker({ value, onChange }: SilhouettePickerProps) {
   const [icons, setIcons] = useState<Record<SilhouetteId, string> | null>(null);
+  const gridNav = useGridNav(4);
 
   useEffect(() => {
     let active = true;
@@ -24,7 +26,7 @@ export function SilhouettePicker({ value, onChange }: SilhouettePickerProps) {
   }, []);
 
   return (
-    <div className="sil-grid" role="group" aria-label="Силуэт">
+    <div className="sil-grid" role="group" aria-label="Силуэт" onKeyDown={gridNav}>
       {SILHOUETTES.map((option) => {
         const active = option.id === value;
         return (

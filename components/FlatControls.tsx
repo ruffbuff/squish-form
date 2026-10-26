@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { useGridNav } from "@/components/useGridNav";
 import { ColorPicker } from "@/components/ColorPicker";
 import { RandomHistory } from "@/components/RandomHistory";
 import { RandomSection } from "@/components/RandomSection";
@@ -84,6 +85,7 @@ export function FlatControls({
   onDownloadPng,
 }: FlatControlsProps) {
   const [stop, setStop] = useState<"a" | "b">("a");
+  const gridNav = useGridNav(4);
   const editingB = params.colorMode === "gradient" && stop === "b";
   const look = `${params.color}|${params.colorB}|${params.colorMode}|${params.gradientCenterX}|${params.gradientCenterY}|${params.fill}|${params.eyes}|${params.mood}|${params.eyeSize}|${params.shadowOn}`;
   const thumbLook = `${params.eyes}|${params.mood}|${params.eyeSize}`;
@@ -132,7 +134,13 @@ export function FlatControls({
       />
 
       <Field label="Силуэт">
-        <div className="sil-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }} role="group" aria-label="Силуэт">
+        <div
+          className="sil-grid"
+          style={{ gridTemplateColumns: "repeat(4, 1fr)" }}
+          role="group"
+          aria-label="Силуэт"
+          onKeyDown={gridNav}
+        >
           {FLAT_SILHOUETTES.map((shape) => {
             const active = shape.id === params.silhouette;
             return (
