@@ -10,6 +10,7 @@ import { ModeSwitch } from "@/components/ModeSwitch";
 import { FpsOverlay } from "@/components/FpsOverlay";
 import { statusLine } from "@/lib/a11yStatus";
 import { downloadFlatPng, downloadFlatSvg } from "@/lib/flatExport";
+import { decodeFlatPreset } from "@/lib/flatPresets";
 import { randomizeFlat } from "@/lib/flatRandom";
 import { thumbFor3d, thumbForFlat } from "@/lib/historyThumb";
 import { FLAT_INITIAL, MODE_STORAGE_KEY, type FlatParams, type PlayMode } from "@/lib/flatTypes";
@@ -112,6 +113,12 @@ export default function Page() {
       if (rawFlat) {
         const parsed = JSON.parse(rawFlat) as Partial<FlatParams> | null;
         if (parsed && typeof parsed === "object") setFlat((current) => ({ ...current, ...parsed }));
+      }
+      const token = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("p");
+      const shared = decodeFlatPreset(token);
+      if (shared) {
+        setFlat((current) => ({ ...current, ...shared }));
+        setMode("flat");
       }
       const rawScopes = window.localStorage.getItem(SCOPE_STORAGE_KEY);
       if (rawScopes) {
