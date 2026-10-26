@@ -3,7 +3,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { idlePose } from "@/lib/motion";
+import { idlePose, STILL_POSE } from "@/lib/motion";
 import type { IdleId } from "@/lib/types";
 
 const FLOOR_Y = -1.12;
@@ -13,9 +13,10 @@ type ContactShadowProps = {
   idle: IdleId;
   speed: number;
   smoothness: number;
+  reducedMotion?: boolean;
 };
 
-export function ContactShadow({ idle, speed, smoothness }: ContactShadowProps) {
+export function ContactShadow({ idle, speed, smoothness, reducedMotion = false }: ContactShadowProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const texture = useMemo(() => makeShadowTexture(), []);
   const box = useMemo(() => new THREE.Box3(), []);
@@ -32,7 +33,7 @@ export function ContactShadow({ idle, speed, smoothness }: ContactShadowProps) {
     box.setFromObject(avatar);
     const bottom = box.min.y;
     const gap = Math.max(0, bottom - FLOOR_Y);
-    const pose = idlePose(idle, clock.current, speed, smoothness);
+    const pose = reducedMotion ? STILL_POSE : idlePose(idle, clock.current, speed, smoothness);
     const lift = Math.max(gap, pose.bob * 0.35);
     const scale = THREE.MathUtils.clamp(1 - lift * 0.55, 0.42, 1);
     const fade = THREE.MathUtils.clamp(1 - lift * 0.38, 0.35, 0.95);

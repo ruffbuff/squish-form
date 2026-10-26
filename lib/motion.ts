@@ -9,6 +9,16 @@ export type MotionPose = {
   bob: number;
 };
 
+/** Static pose used when the user prefers reduced motion. */
+export const STILL_POSE: MotionPose = {
+  width: 1,
+  height: 1,
+  yaw: 0,
+  roll: 0,
+  pitch: 0,
+  bob: 0,
+};
+
 /** speed and smoothness are both 0–1. */
 export function idlePose(idle: IdleId, time: number, speed: number, smoothness: number): MotionPose {
   const pose: MotionPose = { width: 1, height: 1, yaw: 0, roll: 0, pitch: 0, bob: 0 };

@@ -8,6 +8,7 @@ import { captureAvatarPng, exportAvatarGlb, exportProjectPack } from "@/lib/expo
 import { qualityTier, type AvatarParams } from "@/lib/types";
 import { AvatarMesh } from "./AvatarMesh";
 import { ContactShadow } from "./ContactShadow";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 export type PlaygroundApi = {
   downloadGlb: () => Promise<void>;
@@ -27,6 +28,7 @@ type AvatarCanvasProps = AvatarParams & {
 
 export default function AvatarCanvas(props: AvatarCanvasProps) {
   const tier = qualityTier(props.quality);
+  const reducedMotion = usePrefersReducedMotion();
   return (
     <Canvas
       className="h-full w-full"
@@ -87,9 +89,15 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
         eyeInset={props.eyeInset}
         follow={props.follow}
         tap={props.tap}
+        reducedMotion={reducedMotion}
       />
       {tier > 0 && props.shadowOn ? (
-        <ContactShadow idle={props.idle} speed={props.speed} smoothness={props.smoothness} />
+        <ContactShadow
+          idle={props.idle}
+          speed={props.speed}
+          smoothness={props.smoothness}
+          reducedMotion={reducedMotion}
+        />
       ) : null}
       {props.onFpsSample ? <FpsReporter onSample={props.onFpsSample} /> : null}
       <QualityBinder quality={props.quality} />
