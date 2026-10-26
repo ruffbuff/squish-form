@@ -451,20 +451,23 @@ input:focus-visible {
 
 .color-pad {
   touch-action: none;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 11px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 24%, transparent);
 }
 
 .hue-bar {
   touch-action: none;
-  height: 12px;
+  height: 14px;
   border-radius: 999px;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 18%, transparent);
 }
 
 .presets {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   gap: 6px;
 }
 
@@ -514,8 +517,6 @@ input:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-bottom: 2px;
-  overflow: visible;
 }
 
 .color-picker__presets-wrap {
@@ -532,16 +533,36 @@ input:focus-visible {
   color: var(--muted);
 }
 
+/* One inset tray holds the pad and the hue rail, so the two controls read as
+   a single block instead of two loose strips. */
+.color-picker__surface {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--preview-bg);
+}
+
 .color-picker-footer {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-top: 2px;
-  padding-bottom: 4px;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.color-picker__value {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 
 .card--color {
-  padding-bottom: 16px;
+  padding-bottom: 14px;
   overflow: visible;
 }
 
@@ -572,16 +593,33 @@ input:focus-visible {
   background: color-mix(in srgb, var(--select-bg) 18%, var(--seg-bg));
 }
 
-.random-history {
+.random-history-wrap {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.random-history__label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.random-history {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
 }
 
-.random-history__item {
-  width: 40px;
-  height: 40px;
-  flex: 0 0 40px;
+.random-history__slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid var(--line);
@@ -589,8 +627,29 @@ input:focus-visible {
   padding: 0;
 }
 
-.random-history__item:hover {
+.random-history__slot:hover {
   border-color: var(--line-strong);
+}
+
+.random-history__slot--empty {
+  border-style: dashed;
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--preview-bg) 55%, transparent);
+}
+
+.random-history__pending {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--muted);
+  animation: history-spin 0.9s linear infinite;
+}
+
+@keyframes history-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .random-history__thumb {

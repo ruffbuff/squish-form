@@ -12,7 +12,7 @@ import { statusLine } from "@/lib/a11yStatus";
 import { downloadFlatPng, downloadFlatSvg } from "@/lib/flatExport";
 import { decodeFlatPreset } from "@/lib/flatPresets";
 import { randomizeFlat } from "@/lib/flatRandom";
-import { thumbFor3d, thumbForFlat } from "@/lib/historyThumb";
+import { thumbFor3dAsync, thumbForFlatAsync } from "@/lib/historyThumb";
 import { FLAT_INITIAL, MODE_STORAGE_KEY, type FlatParams, type PlayMode } from "@/lib/flatTypes";
 import {
   DEFAULT_RANDOM_SCOPE_3D,
@@ -171,20 +171,32 @@ export default function Page() {
     const entry: ParamsHistory3d = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       label: "Случайная 3D",
-      thumb: thumbFor3d(snapshot),
+      thumb: "",
       params: snapshot,
     };
     setHistory3d((items) => [entry, ...items].slice(0, HISTORY_LIMIT));
+    void thumbFor3dAsync(snapshot).then((thumb) => {
+      if (!thumb) return;
+      setHistory3d((items) =>
+        items.map((item) => (item.id === entry.id ? { ...item, thumb } : item)),
+      );
+    });
   }, []);
 
   const pushFlatHistory = useCallback((snapshot: FlatParams) => {
     const entry: ParamsHistoryFlat = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       label: "Случайная Flat",
-      thumb: thumbForFlat(snapshot),
+      thumb: "",
       params: snapshot,
     };
     setHistoryFlat((items) => [entry, ...items].slice(0, HISTORY_LIMIT));
+    void thumbForFlatAsync(snapshot).then((thumb) => {
+      if (!thumb) return;
+      setHistoryFlat((items) =>
+        items.map((item) => (item.id === entry.id ? { ...item, thumb } : item)),
+      );
+    });
   }, []);
 
   const onRandom = useCallback(() => {

@@ -42,7 +42,8 @@ export function AvatarPreview(props: AvatarParams) {
           mood,
         }),
       );
-    }, 50);
+      // Wait out a rapid randomize burst: only the last frame is rendered.
+    }, 220);
     return () => window.clearTimeout(timer);
   }, [
     silhouette,

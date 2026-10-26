@@ -47,16 +47,27 @@ export default function AvatarCanvas(props: AvatarCanvasProps) {
     >
       <color attach="background" args={[backdropColor(props.backdrop)]} />
       <Stage backdrop={props.backdrop} />
-      <hemisphereLight args={["#fff6ee", "#3a332c", 0.7]} />
-      <directionalLight position={[2.6, 4.4, 3.4]} intensity={1.55} color="#fff8f2" />
-      <directionalLight position={[-3.8, 1.8, 2.6]} intensity={0.72} color="#d7e4ff" />
-      <directionalLight position={[0.4, 1.4, -3.6]} intensity={0.48} color="#ffd8c8" />
       {props.lightOn ? (
-        <Highlight x={props.lightX} y={props.lightY} intensity={props.lightIntensity} />
-      ) : null}
-      <Suspense fallback={null}>
-        <StudioEnvironment />
-      </Suspense>
+        <>
+          {/* A soft base so the point light owns the shading. */}
+          <hemisphereLight args={["#fff6ee", "#3a332c", 0.3]} />
+          <directionalLight position={[2.6, 4.4, 3.4]} intensity={0.5} color="#fff8f2" />
+          <directionalLight position={[-3.8, 1.8, 2.6]} intensity={0.24} color="#d7e4ff" />
+          <directionalLight position={[0.4, 1.4, -3.6]} intensity={0.16} color="#ffd8c8" />
+          <Highlight x={props.lightX} y={props.lightY} intensity={props.lightIntensity} />
+          <Suspense fallback={null}>
+            <StudioEnvironment />
+          </Suspense>
+        </>
+      ) : (
+        <>
+          {/* No key light: a uniform sky and a uniform environment keep the
+              surface nearly identical from every camera angle. */}
+          <hemisphereLight args={["#fff6ee", "#8a8178", 0.9]} />
+          <ambientLight intensity={0.28} color="#fff8f2" />
+          <UniformEnvironment />
+        </>
+      )}
       <AvatarMesh
         silhouette={props.silhouette}
         color={props.color}
@@ -217,23 +228,49 @@ function QualityBinder({ quality }: { quality: number }) {
 function Highlight({ x, y, intensity }: { x: number; y: number; intensity: number }) {
   const px = -1.55 + x * 3.1;
   const py = 0.15 + y * 1.55;
-  const power = 8 + intensity * 28;
+  const power = 20 + intensity * 60;
   return (
-    <group name="squish-light" position={[px, py, 1.7]}>
-      <pointLight intensity={power} distance={6} decay={2} color="#fff8f2" />
+    <group name="squish-light" position={[px, py, 1.9]}>
+      <pointLight intensity={power} distance={6.5} decay={2} color="#fff8f2" />
     </group>
   );
 }
 
 function StudioEnvironment() {
   return (
-    <Environment resolution={256} frames={1}>
-      <Lightformer form="rect" intensity={2.4} position={[0, 3.2, 1.6]} scale={[7, 3.2, 1]} color="#fffaf6" />
-      <Lightformer form="rect" intensity={1} position={[-3.4, 1.2, -1.5]} scale={[3.5, 3.5, 1]} color="#d5e4ff" />
-      <Lightformer form="rect" intensity={0.8} position={[3.2, 0.4, -1.2]} scale={[2.4, 3.2, 1]} color="#ffd2c2" />
-      <Lightformer form="circle" intensity={1.2} position={[0.2, -2.6, 1.4]} scale={[3.5, 3.5, 1]} color="#ffffff" />
+    <Environment resolution={256} frames={1} environmentIntensity={0.55}>
+      <Lightformer form="rect" intensity={1.5} position={[0, 3.2, 1.6]} scale={[7, 3.2, 1]} color="#fffaf6" />
+      <Lightformer form="rect" intensity={0.6} position={[-3.4, 1.2, -1.5]} scale={[3.5, 3.5, 1]} color="#d5e4ff" />
+      <Lightformer form="rect" intensity={0.5} position={[3.2, 0.4, -1.2]} scale={[2.4, 3.2, 1]} color="#ffd2c2" />
+      {/* No lightformer below the avatar: a white disc under the bud mirrored
+          into its smooth underside and read as a hole. */}
     </Environment>
   );
+}
+
+/**
+ * Flat white environment. It removes the directional reflections that made
+ * the unlit avatar change drastically while orbiting.
+ */
+function UniformEnvironment() {
+  const gl = useThree((state) => state.gl);
+  const scene = useThree((state) => state.scene);
+
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const source = new THREE.Scene();
+    source.background = new THREE.Color("#f4eee7");
+    const texture = pmrem.fromScene(source, 0).texture;
+    scene.environment = texture;
+    scene.environmentIntensity = 0.9;
+    pmrem.dispose();
+    return () => {
+      scene.environment = null;
+      texture.dispose();
+    };
+  }, [gl, scene]);
+
+  return null;
 }
 
 function FpsReporter({ onSample }: { onSample: (fps: number) => void }) {

@@ -26,8 +26,19 @@ type StillShot = Pick<
 let renderer: THREE.WebGLRenderer | null = null;
 let scene: THREE.Scene | null = null;
 let camera: THREE.PerspectiveCamera | null = null;
+let cachedBody: { key: string; geometry: THREE.BufferGeometry } | null = null;
 const eyeGeometry = new THREE.SphereGeometry(1, 16, 12);
 const eyeMaterial = new THREE.MeshBasicMaterial({ color: "#0e0c0a" });
+
+/** Reuse the last hull: preview and history often ask for the same shape. */
+function stillGeometry(params: StillShot) {
+  const key = `${params.silhouette}:${params.surface}`;
+  if (cachedBody?.key === key) return cachedBody.geometry;
+  cachedBody?.geometry.dispose();
+  const geometry = createSilhouetteGeometry(params.silhouette, params.surface);
+  cachedBody = { key, geometry };
+  return geometry;
+}
 
 /** One frozen frame of the current avatar, for the circular sidebar preview. */
 export function renderAvatarStill(params: StillShot) {
@@ -36,7 +47,7 @@ export function renderAvatarStill(params: StillShot) {
   const view = ensureCamera();
   clear(stage);
 
-  const geometry = createSilhouetteGeometry(params.silhouette, params.surface);
+  const geometry = stillGeometry(params);
   paintGradient(geometry, params.colorMode, params.color, params.colorB, params.gradientAngle * Math.PI * 2, params.gradientSoft);
   const material = createAvatarMaterial(params.material, params.color, {
     flat: params.surface === "poly",
@@ -62,7 +73,6 @@ export function renderAvatarStill(params: StillShot) {
   gl.render(stage, view);
   const url = gl.domElement.toDataURL("image/png");
   stage.remove(body);
-  geometry.dispose();
   material.dispose();
   return url;
 }
