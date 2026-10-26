@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useGridNav } from "@/components/useGridNav";
+import { usePrefersReducedMotion } from "@/components/usePrefersReducedMotion";
 
 export type SegmentOption<T extends string> = { id: T; label: string };
 
@@ -14,18 +15,6 @@ type SegmentControlProps<T extends string> = {
   "aria-label"?: string;
   className?: string;
 };
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReduced(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return reduced;
-}
 
 export function SegmentControl<T extends string>({
   options,

@@ -16,7 +16,7 @@ import {
 } from "@/lib/eyes";
 import { paintGradient } from "@/lib/gradient";
 import { createAvatarMaterial } from "@/lib/materials";
-import { idlePose } from "@/lib/motion";
+import { idlePose, STILL_POSE } from "@/lib/motion";
 import { createSilhouetteGeometry } from "@/lib/silhouettes";
 import type {
   ColorMode,
@@ -52,6 +52,8 @@ type AvatarMeshProps = {
   follow: boolean;
   tap: boolean;
   frozen?: boolean;
+  /** Freeze looping idle and eye motion for prefers-reduced-motion. */
+  reducedMotion?: boolean;
 };
 
 type Squish = {
@@ -84,6 +86,7 @@ export function AvatarMesh({
   follow,
   tap,
   frozen = false,
+  reducedMotion = false,
 }: AvatarMeshProps) {
   const rig = useRef<THREE.Group>(null);
   const eyeMeshes = useRef<(Mesh | null)[]>([null, null]);
@@ -266,12 +269,12 @@ export function AvatarMesh({
 
     if (frozen) return;
 
-    const time = state.clock.elapsedTime;
+    const time = reducedMotion ? 0 : state.clock.elapsedTime;
     const pace = 0.35 + speed * 1.75;
-    const wander = idle !== "none" && idle !== "float";
+    const wander = !reducedMotion && idle !== "none" && idle !== "float";
     let targetX = 0;
     let targetY = 0;
-    if (follow && hovering.current) {
+    if (follow && !reducedMotion && hovering.current) {
       targetX = THREE.MathUtils.clamp(state.pointer.x * 1.2, -1, 1);
       targetY = THREE.MathUtils.clamp(state.pointer.y * 0.95, -1, 1);
     } else if (wander) {
@@ -281,7 +284,9 @@ export function AvatarMesh({
     look.current.x = THREE.MathUtils.damp(look.current.x, targetX, 8, delta);
     look.current.y = THREE.MathUtils.damp(look.current.y, targetY, 8, delta);
 
-    const pose = idlePose(idle, time, speed, smoothness);
+    const pose = reducedMotion
+      ? { ...STILL_POSE }
+      : idlePose(idle, time, speed, smoothness);
     let { width, height, yaw, roll, pitch, bob } = pose;
 
     yaw += look.current.x * 0.28;
@@ -324,8 +329,10 @@ export function AvatarMesh({
     }
 
     const damp = follow ? 0.4 : 1;
-    const motion = eyeMoodMotion(mood, time, damp);
-    const open = mood === "calm" ? calmBlink(blink.current, time, delta, damp) : 1;
+    const motion = reducedMotion
+      ? { scaleX: 1, scaleY: 1, scaleZ: 1, bob: 0 }
+      : eyeMoodMotion(mood, time, damp);
+    const open = !reducedMotion && mood === "calm" ? calmBlink(blink.current, time, delta, damp) : 1;
     const step = 1 - Math.exp(-delta * 12);
     const slide = scratch.current;
 
