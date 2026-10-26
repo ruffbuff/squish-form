@@ -274,6 +274,13 @@ input:focus-visible {
 .sil-grid button[aria-pressed="true"] {
   border-color: var(--select-bg);
   background: color-mix(in srgb, var(--ink) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--select-ink) 22%, transparent);
+}
+
+/* Keyboard focus is an outer ring; selection is a filled tile. Keeping them
+   visually distinct stops the focused tile looking like the selected one. */
+.sil-grid button:focus-visible {
+  outline-offset: 3px;
 }
 
 .preview-ring {

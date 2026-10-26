@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, type CSSProperties } from "react";
+import { flatEyeDuration } from "@/lib/flatMotion";
 import { flatLayers } from "@/lib/flatSvg";
 import type { FlatParams } from "@/lib/flatTypes";
 
@@ -48,6 +49,10 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
         style={
           {
             "--squish-flat-dur": layers.duration,
+            "--squish-flat-calm-dur": flatEyeDuration(params.speed, "calm"),
+            "--squish-flat-joy-dur": flatEyeDuration(params.speed, "joy"),
+            "--squish-flat-sleep-dur": flatEyeDuration(params.speed, "sleep"),
+            "--squish-flat-wow-dur": flatEyeDuration(params.speed, "wow"),
             transform: `scale(${zoom})`,
             perspective: "1250px",
           } as CSSProperties
@@ -62,7 +67,14 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
         ) : null}
         {params.idle === "spin" ? (
           <div className="squish-flat-edge absolute inset-0" aria-hidden="true">
-            <div dangerouslySetInnerHTML={{ __html: backLayers.body }} />
+            <div
+              className="squish-flat-edge-side"
+              dangerouslySetInnerHTML={{ __html: backLayers.body }}
+            />
+            <div
+              className="squish-flat-edge-light"
+              dangerouslySetInnerHTML={{ __html: backLayers.body }}
+            />
           </div>
         ) : null}
         <div
@@ -140,11 +152,18 @@ function FlatMotionStyle() {
         animation: squish-flat-edge var(--squish-flat-dur, 3.2s) linear infinite;
       }
       .squish-flat-edge > div {
-        height: 100%;
-        width: 100%;
-        transform: scaleX(0.062);
+        position: absolute;
+        inset: 0;
         transform-origin: 50% 50%;
-        filter: brightness(0.78) saturate(0.94);
+      }
+      .squish-flat-edge-side {
+        transform: scaleX(0.078);
+        filter: brightness(0.7) saturate(0.92);
+      }
+      .squish-flat-edge-light {
+        transform: scaleX(0.03);
+        opacity: 0.75;
+        filter: brightness(1.18) saturate(1.04);
       }
       .squish-flat-edge svg { display: block; height: 100%; width: 100%; }
       @keyframes squish-flat-edge {
@@ -180,10 +199,22 @@ function FlatMotionStyle() {
       .squish-flat-shade-float { animation-name: squish-flat-shade-float; }
       .squish-flat-shade-spin { animation-name: squish-flat-shade-spin; }
       .squish-flat-shade-bounce { animation-name: squish-flat-shade-bounce; }
-      .squish-flat-blink { animation-duration: calc(var(--squish-flat-dur, 3.2s) * 1.45); animation-name: squish-flat-blink; }
-      .squish-flat-joy-eyes { animation-name: squish-flat-joy-eyes; }
-      .squish-flat-sleep-eyes { animation-duration: calc(var(--squish-flat-dur, 3.2s) * 1.2); animation-name: squish-flat-sleep-eyes; }
-      .squish-flat-wow-eyes { animation-duration: calc(var(--squish-flat-dur, 3.2s) * 0.72); animation-name: squish-flat-wow-eyes; }
+      .squish-flat-blink {
+        animation-duration: var(--squish-flat-calm-dur, calc(var(--squish-flat-dur, 3.2s) * 1.45));
+        animation-name: squish-flat-blink;
+      }
+      .squish-flat-joy-eyes {
+        animation-duration: var(--squish-flat-joy-dur, var(--squish-flat-dur, 3.2s));
+        animation-name: squish-flat-joy-eyes;
+      }
+      .squish-flat-sleep-eyes {
+        animation-duration: var(--squish-flat-sleep-dur, calc(var(--squish-flat-dur, 3.2s) * 1.2));
+        animation-name: squish-flat-sleep-eyes;
+      }
+      .squish-flat-wow-eyes {
+        animation-duration: var(--squish-flat-wow-dur, calc(var(--squish-flat-dur, 3.2s) * 0.72));
+        animation-name: squish-flat-wow-eyes;
+      }
       .absolute > svg { display: block; width: 100%; height: 100%; }
       @keyframes squish-flat-breathe {
         0%, 100% { transform: rotateX(0deg) scale3d(1, 1, 1); }
