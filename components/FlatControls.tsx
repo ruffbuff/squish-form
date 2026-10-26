@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useGridNav } from "@/components/useGridNav";
+import { FLAT_SILHOUETTE_GRID_COLUMNS } from "@/lib/gridNav";
 import { ColorPicker } from "@/components/ColorPicker";
 import { RandomHistory } from "@/components/RandomHistory";
 import { RandomSection } from "@/components/RandomSection";
@@ -87,7 +88,7 @@ export function FlatControls({
 }: FlatControlsProps) {
   const [stop, setStop] = useState<"a" | "b">("a");
   const [share, setShare] = useState<"idle" | "copied" | "error">("idle");
-  const gridNav = useGridNav(4);
+  const gridNav = useGridNav(FLAT_SILHOUETTE_GRID_COLUMNS);
   const presetNav = useGridNav(FLAT_PRESETS.length);
 
   useEffect(() => {
@@ -213,8 +214,7 @@ export function FlatControls({
 
       <Field label="Силуэт">
         <div
-          className="sil-grid"
-          style={{ gridTemplateColumns: "repeat(4, 1fr)" }}
+          className="sil-grid sil-grid--flat"
           role="group"
           aria-label="Силуэт"
           onKeyDown={gridNav}

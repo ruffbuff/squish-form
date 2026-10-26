@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useGridNav } from "@/components/useGridNav";
+import { SILHOUETTE_GRID_COLUMNS } from "@/lib/gridNav";
 import { renderSilhouetteIcons } from "@/lib/silhouetteIcons";
 import { SILHOUETTES } from "@/lib/silhouettes";
 import type { SilhouetteId } from "@/lib/types";
@@ -13,7 +14,7 @@ type SilhouettePickerProps = {
 
 export function SilhouettePicker({ value, onChange }: SilhouettePickerProps) {
   const [icons, setIcons] = useState<Record<SilhouetteId, string> | null>(null);
-  const gridNav = useGridNav(4);
+  const gridNav = useGridNav(SILHOUETTE_GRID_COLUMNS);
 
   useEffect(() => {
     let active = true;
