@@ -207,6 +207,18 @@ export function FlatControls({
         <SegmentControl layout="chips" options={IDLES} value={params.idle} onChange={(idle) => onChange({ idle })} />
         <Slider label="Скорость" value={params.speed} onChange={(speed) => onChange({ speed })} />
         <Slider
+          label="Плавность"
+          display={
+            params.smoothness < 0.34
+              ? "Резко"
+              : params.smoothness > 0.66
+                ? "Мягко"
+                : "Средне"
+          }
+          value={params.smoothness}
+          onChange={(smoothness) => onChange({ smoothness })}
+        />
+        <Slider
           label="Масштаб"
           display={params.zoom < 0.94 ? "Дальше" : params.zoom > 1.06 ? "Ближе" : "Средне"}
           value={(params.zoom - 0.82) / 0.36}

@@ -32,3 +32,17 @@ export function flatDuration(speed: number) {
 export function flatEyeDuration(speed: number, mood: FlatEyeMood) {
   return `${(flatDurationSeconds(speed) * FLAT_EYE_MULTIPLIER[mood]).toFixed(2)}s`;
 }
+
+/**
+ * Easing for every non-spin Flat motion. Softness 0 is close to linear;
+ * 1 adds a gentle overshoot. Spin stays linear so angular velocity is
+ * constant, as the motion spec requires.
+ */
+export function flatEasing(smoothness: number) {
+  const t = Math.min(1, Math.max(0, smoothness));
+  const x1 = (0.18 + 0.2 * t).toFixed(2);
+  const y1 = (0.06 + 0.48 * t).toFixed(2);
+  const x2 = (0.32 - 0.04 * t).toFixed(2);
+  const y2 = (0.94 + 0.06 * t).toFixed(2);
+  return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+}

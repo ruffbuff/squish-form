@@ -35,6 +35,8 @@ export type FlatParams = {
   idle: FlatIdleId;
   /** 0–1 playback rate for breathe, float, and the calm blink. */
   speed: number;
+  /** 0–1 easing softness. 0 is linear, 1 is a springy overshoot. */
+  smoothness: number;
   /** 0–1 gradient focal point for two-color fills. */
   gradientCenterX: number;
   gradientCenterY: number;
@@ -58,6 +60,7 @@ export const FLAT_INITIAL: FlatParams = {
   eyeSize: 1,
   idle: "breathe",
   speed: 0.5,
+  smoothness: 0.7,
   gradientCenterX: 0.42,
   gradientCenterY: 0.32,
   zoom: 1,
