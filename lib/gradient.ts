@@ -11,7 +11,13 @@ export function paintGradient(
   soft: boolean,
 ) {
   const position = geometry.attributes.position;
-  const colors = new Float32Array(position.count * 3);
+  // Reuse the existing buffer: randomizing colours must not allocate and
+  // re-upload a fresh 90k-float array on every click.
+  const existing = geometry.getAttribute("color") as THREE.BufferAttribute | undefined;
+  const colors =
+    existing && existing.array.length === position.count * 3
+      ? (existing.array as Float32Array)
+      : new Float32Array(position.count * 3);
   const first = new THREE.Color(colorA);
   const second = new THREE.Color(colorB);
   const axis = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0);
@@ -41,5 +47,9 @@ export function paintGradient(
     colors[index * 3 + 2] = mixed.b;
   }
 
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  if (existing) {
+    existing.needsUpdate = true;
+  } else {
+    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  }
 }

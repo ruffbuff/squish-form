@@ -153,21 +153,26 @@ export function createAvatarMaterial(id: MaterialId, hex: string, finish: Materi
 
 function applyRim(material: THREE.MeshPhysicalMaterial, amount: number) {
   if (amount <= 0.01) return;
-  const rim = amount.toFixed(3);
   material.onBeforeCompile = (shader) => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <opaque_fragment>",
-      `
+    // The rim strength is a uniform, not a literal in the shader source.
+    // Otherwise every random rim value compiled a brand new program and
+    // caused a long frame during rapid randomizing.
+    shader.uniforms.uSquishRim = { value: amount };
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform float uSquishRim;")
+      .replace(
+        "#include <opaque_fragment>",
+        `
       {
         float facing = abs(dot(normalize(normal), normalize(vViewPosition)));
         float fres = pow(1.0 - saturate(facing), 2.6);
-        outgoingLight += fres * ${rim} * vec3(1.0, 0.97, 0.93);
+        outgoingLight += fres * uSquishRim * vec3(1.0, 0.97, 0.93);
       }
       #include <opaque_fragment>
       `,
-    );
+      );
   };
-  material.customProgramCacheKey = () => `squish-rim-${rim}`;
+  material.customProgramCacheKey = () => "squish-rim";
 }
 
 function getClayGrain() {

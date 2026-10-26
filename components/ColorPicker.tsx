@@ -35,35 +35,40 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
           ))}
         </div>
       </div>
-      <div
-        ref={pad.ref}
-        className="color-pad relative h-[7.25rem] min-h-[7.25rem] w-full max-w-full cursor-crosshair"
-        style={{
-          background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv.h} 100% 50%))`,
-        }}
-        onPointerDown={pad.onPointerDown}
-        onPointerMove={pad.onPointerMove}
-      >
-        <span
-          className="pointer-events-none absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-          style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%` }}
-        />
-      </div>
-      <div
-        ref={hue.ref}
-        className="hue-bar relative mt-0.5 w-full max-w-full cursor-ew-resize"
-        style={{ background: "linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
-        onPointerDown={hue.onPointerDown}
-        onPointerMove={hue.onPointerMove}
-      >
-        <span
-          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-          style={{ left: `${(hsv.h / 360) * 100}%`, background: `hsl(${hsv.h} 90% 55%)` }}
-        />
+      <div className="color-picker__surface">
+        <div
+          ref={pad.ref}
+          className="color-pad relative h-[6.75rem] min-h-[6.75rem] w-full max-w-full cursor-crosshair"
+          style={{
+            background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv.h} 100% 50%))`,
+          }}
+          onPointerDown={pad.onPointerDown}
+          onPointerMove={pad.onPointerMove}
+        >
+          <span
+            className="pointer-events-none absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
+            style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%` }}
+          />
+        </div>
+        <div
+          ref={hue.ref}
+          className="hue-bar relative w-full max-w-full cursor-ew-resize"
+          style={{ background: "linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
+          onPointerDown={hue.onPointerDown}
+          onPointerMove={hue.onPointerMove}
+        >
+          <span
+            className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
+            style={{ left: `${(hsv.h / 360) * 100}%`, background: `hsl(${hsv.h} 90% 55%)` }}
+          />
+        </div>
       </div>
       <div className="color-picker-footer">
         <span className="swatch-lg" style={{ background: color }} />
-        <HexField color={color} onChange={onChange} />
+        <div className="color-picker__value">
+          <span className="color-picker__label">HEX</span>
+          <HexField color={color} onChange={onChange} />
+        </div>
       </div>
     </div>
   );

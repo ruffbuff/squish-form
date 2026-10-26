@@ -109,11 +109,16 @@ export function AvatarMesh({
   });
   const gl = useThree((state) => state.gl);
 
-  const geometry = useMemo(() => {
-    const next = createSilhouetteGeometry(silhouette, surface);
-    paintGradient(next, colorMode, color, colorB, gradientAngle * Math.PI * 2, gradientSoft);
-    return next;
-  }, [silhouette, surface, colorMode, color, colorB, gradientAngle, gradientSoft]);
+  // Geometry only depends on the shape. Colours are painted into the existing
+  // vertex buffer below, so a randomize click no longer rebuilds 30k faces.
+  const geometry = useMemo(
+    () => createSilhouetteGeometry(silhouette, surface),
+    [silhouette, surface],
+  );
+
+  useLayoutEffect(() => {
+    paintGradient(geometry, colorMode, color, colorB, gradientAngle * Math.PI * 2, gradientSoft);
+  }, [geometry, colorMode, color, colorB, gradientAngle, gradientSoft]);
   const surfaceMaterial = useMemo(() => {
     const mat = createAvatarMaterial(material, color, {
       flat: surface === "poly",
