@@ -97,6 +97,11 @@ export function FlatStage({ params, onFpsSample }: FlatStageProps) {
             className={`squish-flat-card absolute inset-0 ${motion}`}
             style={{ transformOrigin: layers.motionOrigin }}
           >
+            <div
+              className="squish-flat-edge absolute inset-0"
+              style={{ transformOrigin: layers.motionOrigin }}
+              dangerouslySetInnerHTML={{ __html: layers.edge }}
+            />
             <div className="squish-flat-face squish-flat-face--front">
               <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: layers.body }} />
               <div
@@ -165,6 +170,10 @@ function FlatMotionStyle() {
         transform: rotateY(180deg);
         filter: brightness(0.88) saturate(0.94);
       }
+      .squish-flat-edge {
+        transform: translateZ(-1px);
+        will-change: transform, opacity;
+      }
       .squish-flat-look {
         transform-style: preserve-3d;
         transform: rotateY(var(--look-x, 0deg)) rotateX(var(--look-y, 0deg));
@@ -173,6 +182,7 @@ function FlatMotionStyle() {
       }
       .squish-flat-spin .squish-flat-face--front,
       .squish-flat-spin .squish-flat-face--back,
+      .squish-flat-spin .squish-flat-edge,
       .squish-flat-spin-eyes {
         animation-duration: var(--squish-flat-dur, 3.2s);
         animation-timing-function: linear;
@@ -184,7 +194,15 @@ function FlatMotionStyle() {
         transform: scaleX(-1);
         backface-visibility: visible;
       }
+      .squish-flat-spin .squish-flat-edge { animation-name: squish-flat-edge-spin; }
       .squish-flat-spin-eyes { animation-name: squish-flat-spin-eyes; }
+      /* Keep the wall wider than the narrowed face at the quarter turns, so
+         the card reads as a solid slab instead of a shrinking sticker. */
+      @keyframes squish-flat-edge-spin {
+        0%, 50%, 100% { transform: translateZ(-1px) translateX(0) scaleX(1); opacity: 0.92; }
+        25% { transform: translateZ(-1px) translateX(13%) scaleX(0.62); opacity: 1; }
+        75% { transform: translateZ(-1px) translateX(-13%) scaleX(0.62); opacity: 1; }
+      }
       @keyframes squish-flat-spin-front {
         0%, 22% { opacity: 1; }
         28%, 72% { opacity: 0; }
@@ -323,8 +341,10 @@ function FlatMotionStyle() {
         .squish-flat-wow-eyes,
         .squish-flat-spin .squish-flat-face--front,
         .squish-flat-spin .squish-flat-face--back,
+        .squish-flat-spin .squish-flat-edge,
         .squish-flat-spin-eyes { animation: none; }
         .squish-flat-look { transition: none; transform: none; }
+        .squish-flat-edge { transform: translateZ(-1px); opacity: 1; }
         .squish-flat-spin .squish-flat-face--front { opacity: 1; }
         .squish-flat-spin .squish-flat-face--back { opacity: 0; }
         /* Keep the 2.5D read without looping: a fixed three-quarter pose and
