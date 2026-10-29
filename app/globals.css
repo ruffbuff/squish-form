@@ -3,6 +3,7 @@
 /* Jelly Soft. Dark is the warm brown family; light is coral-tinted cream, not an invert. */
 :root,
 html[data-theme="dark"] {
+  --font-sans: "Segoe UI", Arial, sans-serif;
   --bg: #13110f;
   --panel: #1b1816;
   --panel-card: #241f1c;

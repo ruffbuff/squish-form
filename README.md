@@ -79,3 +79,16 @@ Earlier commits used `v0.0.0` as a placeholder during the first unreleased itera
 npm test         # unit tests (silhouettes, eye anchors, eye fit)
 npm run build    # production build
 ```
+
+## GitHub Pages
+
+The `main` branch deploys automatically through `.github/workflows/deploy-pages.yml`.
+The static site is exported to `out/` and is served at:
+
+```text
+https://ruffbuff.github.io/squish-form/
+```
+
+On GitHub Free, the repository must be public for GitHub Pages. After the first
+merge, enable `Settings → Pages → Source: GitHub Actions` if GitHub has not
+enabled the Pages environment automatically.
