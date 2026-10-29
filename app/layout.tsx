@@ -1,14 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-sans",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "SquishForm",
@@ -25,7 +17,7 @@ const themeBoot = `(function(){try{var stored=localStorage.getItem("squish-theme
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" data-theme="dark" className={jakarta.variable} suppressHydrationWarning>
+    <html lang="ru" data-theme="dark" suppressHydrationWarning>
       <body>
         <Script id="squish-theme" strategy="beforeInteractive">
           {themeBoot}
