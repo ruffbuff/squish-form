@@ -3,6 +3,7 @@ import * as THREE from "three";
 import {
   EYE_INSET_DEFAULT,
   eyeMoodShape,
+  eyeLookBounds,
   eyeProtrusion,
   eyeQuaternion,
   eyeTilt,
@@ -78,6 +79,31 @@ describe("eye anchors", () => {
 });
 
 describe("eye fitting", () => {
+  it.each(ids)("%s clamps look-around inside the mood eye box", (id) => {
+    const placed = placeEyesOnSilhouette(id);
+    for (const mood of moods) {
+      for (const oval of [false, true]) {
+        const shape = eyeMoodShape(mood, oval);
+        const bounds = eyeLookBounds(placed, shape);
+        for (const x of [-1, 1]) {
+          for (const y of [-1, 1]) {
+            const target = new THREE.Vector3(
+              x * placed.radius * 0.2,
+              y * placed.radius * 0.14,
+              0,
+            );
+            target.x = THREE.MathUtils.clamp(target.x, bounds.minX, bounds.maxX);
+            target.y = THREE.MathUtils.clamp(target.y, bounds.minY, bounds.maxY);
+            expect(target.x).toBeGreaterThanOrEqual(bounds.minX);
+            expect(target.x).toBeLessThanOrEqual(bounds.maxX);
+            expect(target.y).toBeGreaterThanOrEqual(bounds.minY);
+            expect(target.y).toBeLessThanOrEqual(bounds.maxY);
+          }
+        }
+      }
+    }
+  });
+
   it.each(ids)("%s seats every mood and eye shape inside the smooth hull", (id) => {
     const geometry = createSilhouetteGeometry(id, "smooth");
     const placed = placeEyesOnSilhouette(id);

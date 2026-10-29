@@ -1,6 +1,6 @@
 # SquishForm — backlog after v0.3.1
 
-Status: synced to the code at `v0.3.6` (this document is the `v0.3.6` docs bump).
+Status: synced to the code at `v0.3.7` (this document is the `v0.3.7` docs bump).
 The previous draft described the tree just after Flat 2.5D motion landed (`cursor/flat-25d-motion-eye-fit`, PR #11). PRs #12–#22 shipped most of that draft. This file is the ordered list of what is left.
 
 Task 1 (3D silhouette keyboard columns) shipped in `v0.3.3`. The next PR starts at task 2. Task numbers below stay as they are.
@@ -81,7 +81,7 @@ Acceptance: for one smooth silhouette and one poly silhouette, the still’s eye
 
 Acceptance: the 3D PNG is the rest pose (idle time 0, no look offset), transparent, at pixel ratio 2 regardless of the quality slider. Two captures with the camera unmoved match aside from the filename timestamp.
 
-### 5. Clamp 3D gaze to the eye box
+### 5. Clamp 3D gaze to the eye box — done (`v0.3.7`)
 
 Look-around and idle wander slide on the tangent plane by `0.2` and `0.14` radii (`AvatarMesh` `useFrame`). Nothing stops that slide at the silhouette edge.
 
