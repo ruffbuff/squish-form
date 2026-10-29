@@ -328,7 +328,9 @@ function ExportBinder({
         await exportAvatarGlb(root, silhouette);
       },
       downloadPng: () => {
-        captureAvatarPng(gl, scene, camera, silhouette);
+        const root = scene.getObjectByName("squish-avatar");
+        if (!root) throw new Error("Форма ещё не готова");
+        captureAvatarPng(gl, scene, camera, silhouette, root);
       },
       downloadPack: async () => {
         const root = scene.getObjectByName("squish-avatar");

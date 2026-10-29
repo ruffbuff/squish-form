@@ -4,6 +4,48 @@ import { avatarComponentSource, packReadme } from "./projectPack";
 import type { IdleId, SilhouetteId } from "./types";
 import { createZip } from "./zip";
 
+export const PNG_EXPORT_PIXEL_RATIO = 2;
+
+type TransformSnapshot = {
+  object: THREE.Object3D;
+  position: THREE.Vector3;
+  quaternion: THREE.Quaternion;
+  scale: THREE.Vector3;
+};
+
+export function prepareAvatarPngRestPose(root: THREE.Object3D) {
+  const snapshots: TransformSnapshot[] = [];
+  root.traverse((object) => {
+    if (object === root || object.name === "squish-eye") {
+      snapshots.push({
+        object,
+        position: object.position.clone(),
+        quaternion: object.quaternion.clone(),
+        scale: object.scale.clone(),
+      });
+    }
+  });
+
+  root.position.set(0, 0.02, 0);
+  root.rotation.set(0, 0.38, 0);
+  root.scale.set(1, 1, 1);
+  root.traverse((object) => {
+    if (object.name !== "squish-eye") return;
+    const restPosition = object.userData.restPosition as [number, number, number] | undefined;
+    const restScale = object.userData.restScale as [number, number, number] | undefined;
+    if (restPosition) object.position.set(...restPosition);
+    if (restScale) object.scale.set(...restScale);
+  });
+
+  return () => {
+    snapshots.forEach(({ object, position, quaternion, scale }) => {
+      object.position.copy(position);
+      object.quaternion.copy(quaternion);
+      object.scale.copy(scale);
+    });
+  };
+}
+
 export function fileStamp(date = new Date()) {
   const pad = (value: number) => String(value).padStart(2, "0");
   return [
@@ -92,7 +134,11 @@ export function captureAvatarPng(
   scene: THREE.Scene,
   camera: THREE.Camera,
   silhouette: SilhouetteId,
+  root?: THREE.Object3D,
 ) {
+  const restoreRestPose = root ? prepareAvatarPngRestPose(root) : () => undefined;
+  const previousPixelRatio = gl.getPixelRatio();
+  const previousSize = gl.getSize(new THREE.Vector2());
   const previousBackground = scene.background;
   const previousAlpha = gl.getClearAlpha();
   const previousColor = gl.getClearColor(new THREE.Color());
@@ -108,12 +154,17 @@ export function captureAvatarPng(
 
   scene.background = null;
   gl.setClearColor(0x000000, 0);
+  gl.setPixelRatio(PNG_EXPORT_PIXEL_RATIO);
+  gl.setSize(previousSize.x, previousSize.y, false);
   gl.render(scene, camera);
 
   const dataUrl = gl.domElement.toDataURL("image/png");
 
   for (const object of hidden) object.visible = true;
   scene.background = previousBackground;
+  gl.setPixelRatio(previousPixelRatio);
+  gl.setSize(previousSize.x, previousSize.y, false);
+  restoreRestPose();
   gl.setClearColor(previousColor, previousAlpha);
   gl.render(scene, camera);
 
