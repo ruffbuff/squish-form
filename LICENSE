@@ -1,0 +1,76 @@
+SquishForm Source-Available License (SSAL) 1.0
+
+Copyright (c) 2026 ruffbuff
+
+This license applies to the SquishForm source code and accompanying files (the
+"Software"). "You" means the person or organization exercising rights under
+this license.
+
+1. Permission for non-commercial use
+
+You may use, study, copy, modify, and run the Software for personal use,
+education, research, evaluation, and other non-commercial purposes.
+
+You may make and share non-commercial copies and modified versions of the
+Software, provided that:
+
+  a. this license and the copyright notice are included with every copy;
+  b. modified files are clearly marked as modified; and
+  c. you do not imply that ruffbuff endorses your version.
+
+2. Contributions
+
+You may contribute improvements, bug fixes, documentation, and other changes
+to the project. Unless a separate written agreement says otherwise, each
+contribution is provided under this same license. Contributors retain copyright
+in their own contributions.
+
+3. Commercial use and distribution
+
+You may not sell, license for a fee, rent, sublicense, bundle for sale, or use
+the Software or a substantially similar copy of it as part of a commercial
+product or service.
+
+The restriction above does not apply to a substantially different commercial
+product in which the original backend is completely replaced with an
+independently implemented backend. For this exception to apply:
+
+  a. all server-side, API, database, authentication, payment, data-processing,
+     and other backend logic from the Software must be removed and replaced;
+  b. the commercial product must not include the original backend code or a
+     lightly modified version of it;
+  c. the product must not be marketed as SquishForm or as an official product
+     of ruffbuff; and
+  d. this license and the copyright notice must remain in the source
+     distribution for any frontend or other portion derived from the Software.
+
+Changing configuration, branding, colors, layout, deployment target, or a
+small amount of frontend code does not by itself satisfy the backend-replacement
+exception. If the Software is used without a backend, this exception does not
+create a right to sell a near-identical copy of the Software.
+
+Commercial use not expressly permitted by this section requires prior written
+permission from ruffbuff.
+
+4. Attribution and trademarks
+
+You must retain the copyright notice and this license in copies and substantial
+portions of the Software. This license does not grant rights to use the names,
+logos, trademarks, or branding of ruffbuff or SquishForm except for accurate,
+descriptive attribution.
+
+5. No warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+6. Termination
+
+Your rights under this license terminate automatically if you violate its
+terms. Rights properly granted to recipients of unmodified copies remain
+effective if those recipients comply with this license.
