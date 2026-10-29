@@ -350,12 +350,30 @@ function FlatMotionStyle() {
         /* Keep the 2.5D read without looping: a fixed three-quarter pose and
            an offset shadow replace breathe/float/spin/bounce. */
         .squish-flat-card { transform: rotateX(-5deg) rotateY(-14deg); }
+        /* Reduced motion still gets one slow breathe, then holds the same
+           three-quarter pose. All other idle loops remain disabled above. */
+        .squish-flat-breathe {
+          animation-name: squish-flat-reduced-breathe;
+          animation-duration: calc(var(--squish-flat-dur, 3.2s) * 2);
+          animation-iteration-count: 1;
+          animation-fill-mode: both;
+        }
         .squish-flat-shade-breathe,
         .squish-flat-shade-float,
         .squish-flat-shade-spin,
         .squish-flat-shade-bounce {
           transform: translate(-3%, 2%) scale(0.97);
           opacity: 0.8;
+        }
+        .squish-flat-shade-breathe {
+          animation-name: squish-flat-shade-breathe;
+          animation-duration: calc(var(--squish-flat-dur, 3.2s) * 2);
+          animation-iteration-count: 1;
+          animation-fill-mode: both;
+        }
+        @keyframes squish-flat-reduced-breathe {
+          0%, 100% { transform: rotateX(-5deg) rotateY(-14deg) scale3d(1, 1, 1); }
+          50% { transform: rotateX(-9deg) rotateY(-14deg) translateZ(10px) scale3d(1.05, 1.08, 1); }
         }
       }
     `}</style>
