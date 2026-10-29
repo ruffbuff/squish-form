@@ -37,6 +37,8 @@ export type PlacedEyes = {
 
 /** Slider default. 0 leaves the eyes proud, 1 sinks them. */
 export const EYE_INSET_DEFAULT = 0.62;
+export const EYE_POLY_LIFT = 0.14;
+export const EYE_POLY_DEPTH_SCALE = 0.86;
 
 /**
  * Fraction of this eye's own depth (radius × mood depth scale).

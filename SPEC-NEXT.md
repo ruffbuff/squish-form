@@ -1,6 +1,6 @@
 # SquishForm — backlog after v0.3.1
 
-Status: synced to the code at `v0.3.4` (this document is the `v0.3.4` docs bump).
+Status: synced to the code at `v0.3.5` (this document is the `v0.3.5` docs bump).
 The previous draft described the tree just after Flat 2.5D motion landed (`cursor/flat-25d-motion-eye-fit`, PR #11). PRs #12–#22 shipped most of that draft. This file is the ordered list of what is left.
 
 Task 1 (3D silhouette keyboard columns) shipped in `v0.3.3`. The next PR starts at task 2. Task numbers below stay as they are.
@@ -69,7 +69,7 @@ The current tests check bounds and mood half-extents. They do not sample the hul
 
 Acceptance: `npm test` places every silhouette at the default inset (`EYE_INSET_DEFAULT`), for calm, joy, sleep, and wow, dots and ovals. The eye center is inside the smooth hull, and the forward cap stays within the `eyeProtrusion` band of the local surface. Change production fit only if a case fails, in this same PR.
 
-### 3. Match the sidebar still to the stage seat
+### 3. Match the sidebar still to the stage seat — done (`v0.3.5`)
 
 `renderAvatarStill` skips the poly lift (`+0.14`) and the poly depth scale (`0.86`) that `AvatarMesh` applies at rest. The still is 128×128, from `lib/avatarStill.ts`.
 

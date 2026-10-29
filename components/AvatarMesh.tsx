@@ -8,6 +8,8 @@ import {
   calmBlink,
   eyeMoodMotion,
   eyeMoodShape,
+  EYE_POLY_DEPTH_SCALE,
+  EYE_POLY_LIFT,
   eyeProtrusion,
   eyeQuaternion,
   eyeTilt,
@@ -241,9 +243,9 @@ export function AvatarMesh({
   const radius = anchors.radius * eyeSize;
   const moodShape = eyeMoodShape(mood, eyes === "ovals");
   // Poly surfaces sit a little further forward than the smooth hull.
-  const polyLift = surface === "poly" ? 0.14 : 0;
+  const polyLift = surface === "poly" ? EYE_POLY_LIFT : 0;
   const protrusion = eyeProtrusion(eyeInset, anchors.sink) + polyLift;
-  const depthScale = surface === "poly" ? 0.86 : 1;
+  const depthScale = surface === "poly" ? EYE_POLY_DEPTH_SCALE : 1;
   const restScale: [number, number, number] = [
     radius * moodShape.sx,
     radius * moodShape.sy,

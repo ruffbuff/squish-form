@@ -1,12 +1,12 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { eyeMoodShape, eyeProtrusion, eyeQuaternion, eyeTilt, placeEyesOnSilhouette, seatEyePosition } from "./eyes";
+import { EYE_POLY_DEPTH_SCALE, EYE_POLY_LIFT, eyeMoodShape, eyeProtrusion, eyeQuaternion, eyeTilt, placeEyesOnSilhouette, seatEyePosition } from "./eyes";
 import { paintGradient } from "./gradient";
 import { createAvatarMaterial } from "./materials";
 import { createSilhouetteGeometry } from "./silhouettes";
 import type { AvatarParams } from "./types";
 
-type StillShot = Pick<
+export type StillShot = Pick<
   AvatarParams,
   | "silhouette"
   | "color"
@@ -22,6 +22,18 @@ type StillShot = Pick<
   | "eyeInset"
   | "mood"
 >;
+
+export function stillEyePositions(params: StillShot) {
+  const anchors = placeEyesOnSilhouette(params.silhouette);
+  const radius = anchors.radius * params.eyeSize;
+  const mood = eyeMoodShape(params.mood, params.eyes === "ovals");
+  const protrusion = eyeProtrusion(params.eyeInset, anchors.sink) + (params.surface === "poly" ? EYE_POLY_LIFT : 0);
+  const depthScale = params.surface === "poly" ? EYE_POLY_DEPTH_SCALE : 1;
+  const depth = radius * mood.sz * depthScale;
+  return anchors.eyes.map((anchor) =>
+    seatEyePosition(anchor, depth, protrusion, radius * mood.lift),
+  ) as [THREE.Vector3, THREE.Vector3];
+}
 
 let renderer: THREE.WebGLRenderer | null = null;
 let scene: THREE.Scene | null = null;
@@ -60,11 +72,11 @@ export function renderAvatarStill(params: StillShot) {
   const anchors = placeEyesOnSilhouette(params.silhouette);
   const radius = anchors.radius * params.eyeSize;
   const mood = eyeMoodShape(params.mood, params.eyes === "ovals");
-  const protrusion = eyeProtrusion(params.eyeInset, anchors.sink);
+  const eyePositions = stillEyePositions(params);
   anchors.eyes.forEach((anchor, index) => {
     const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    const depth = radius * mood.sz;
-    eye.position.copy(seatEyePosition(anchor, depth, protrusion, radius * mood.lift));
+    const depth = radius * mood.sz * (params.surface === "poly" ? EYE_POLY_DEPTH_SCALE : 1);
+    eye.position.copy(eyePositions[index]);
     eye.scale.set(radius * mood.sx, radius * mood.sy, depth);
     eye.quaternion.copy(eyeQuaternion(anchor, eyeTilt(mood, index)));
     body.add(eye);
