@@ -72,8 +72,8 @@ const LAYOUT: Record<SilhouetteId, EyeLayout> = {
 export function eyeMoodShape(mood: EyeMood, oval: boolean): EyeMoodShape {
   if (mood === "joy") {
     return oval
-      ? { sx: 1.82, sy: 0.34, sz: 0.7, lift: 0.16, tilt: 0.78 }
-      : { sx: 1.48, sy: 0.28, sz: 0.64, lift: 0.18, tilt: 0.82 };
+      ? { sx: 1.82, sy: 0.34, sz: 0.7, lift: 0, tilt: 0.78 }
+      : { sx: 1.48, sy: 0.28, sz: 0.64, lift: 0, tilt: 0.82 };
   }
   if (mood === "sleep") {
     return oval
@@ -82,8 +82,8 @@ export function eyeMoodShape(mood: EyeMood, oval: boolean): EyeMoodShape {
   }
   if (mood === "wow") {
     return oval
-      ? { sx: 1.22, sy: 1.95, sz: 1.02, lift: 0.06, tilt: 0 }
-      : { sx: 1.08, sy: 1.72, sz: 1.02, lift: 0.08, tilt: 0 };
+      ? { sx: 1.22, sy: 1.95, sz: 1.02, lift: 0, tilt: 0 }
+      : { sx: 1.08, sy: 1.72, sz: 1.02, lift: 0, tilt: 0 };
   }
   return oval
     ? { sx: 1.48, sy: 0.86, sz: 0.8, lift: 0, tilt: 0 }
