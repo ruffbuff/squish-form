@@ -15,6 +15,20 @@ import type { EyeMood, SilhouetteId } from "./types";
 const ids = SILHOUETTES.map((item) => item.id);
 const moods: EyeMood[] = ["calm", "joy", "sleep", "wow"];
 
+function frontSurfacePoint(
+  geometry: THREE.BufferGeometry,
+  origin: THREE.Vector3,
+) {
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+  const raycaster = new THREE.Raycaster(
+    new THREE.Vector3(origin.x, origin.y, 2),
+    new THREE.Vector3(0, 0, -1),
+  );
+  const hit = raycaster.intersectObject(mesh, false)[0];
+  mesh.material.dispose();
+  return hit?.point ?? null;
+}
+
 function hullSize(id: SilhouetteId) {
   const geometry = createSilhouetteGeometry(id, "smooth");
   geometry.computeBoundingBox();
@@ -64,6 +78,35 @@ describe("eye anchors", () => {
 });
 
 describe("eye fitting", () => {
+  it.each(ids)("%s seats every mood and eye shape inside the smooth hull", (id) => {
+    const geometry = createSilhouetteGeometry(id, "smooth");
+    const placed = placeEyesOnSilhouette(id);
+
+    for (const mood of moods) {
+      for (const oval of [false, true]) {
+        const shape = eyeMoodShape(mood, oval);
+        const protrusion = eyeProtrusion(EYE_INSET_DEFAULT, placed.sink);
+        const depth = placed.radius * shape.sz;
+
+        placed.eyes.forEach((anchor, index) => {
+          const center = seatEyePosition(anchor, depth, protrusion, placed.radius * shape.lift);
+          const surface = frontSurfacePoint(geometry, center);
+          expect(surface, `${id}/${mood}/${oval ? "ovals" : "dots"}/eye-${index}`).not.toBeNull();
+          expect(surface!.z).toBeGreaterThan(center.z + 0.0001);
+
+          const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(
+            eyeQuaternion(anchor, eyeTilt(shape, index)),
+          );
+          const cap = center.clone().addScaledVector(forward, depth);
+          const capBeyondSurface = cap.dot(anchor.normal) - surface!.dot(anchor.normal);
+          expect(capBeyondSurface).toBeLessThanOrEqual(depth * 1.05);
+        });
+      }
+    }
+
+    geometry.dispose();
+  });
+
   it.each(ids)("%s eyes fit their mood budget", (id) => {
     const placed = placeEyesOnSilhouette(id);
     const size = hullSize(id);
