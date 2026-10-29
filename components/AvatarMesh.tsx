@@ -8,6 +8,7 @@ import {
   calmBlink,
   eyeMoodMotion,
   eyeMoodShape,
+  eyeLookBounds,
   EYE_POLY_DEPTH_SCALE,
   EYE_POLY_LIFT,
   eyeProtrusion,
@@ -364,6 +365,9 @@ export function AvatarMesh({
       // A short slide on the tangent plane. A longer one walks off curved cheeks.
       slide.target.addScaledVector(slide.x, look.current.x * radius * 0.2);
       slide.target.addScaledVector(slide.y, look.current.y * radius * 0.14);
+      const bounds = eyeLookBounds(anchors, moodShape);
+      slide.target.x = THREE.MathUtils.clamp(slide.target.x, bounds.minX, bounds.maxX);
+      slide.target.y = THREE.MathUtils.clamp(slide.target.y, bounds.minY, bounds.maxY);
       slide.target.y += motion.bob * radius;
       eye.position.copy(slide.target);
       eye.scale.set(

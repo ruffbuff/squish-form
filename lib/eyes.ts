@@ -33,6 +33,10 @@ export type PlacedEyes = {
   radius: number;
   /** Extra burial in radii. Curved silhouettes need more so the dome stays nested. */
   sink: number;
+  /** Eye center box used to keep look-around from walking off the hull. */
+  spread: number;
+  eyeY: number;
+  verticalBudget: number;
 };
 
 /** Slider default. 0 leaves the eyes proud, 1 sinks them. */
@@ -169,6 +173,19 @@ export function seatEyePosition(anchor: EyeAnchor, depth: number, protrusion: nu
   return position;
 }
 
+export function eyeLookBounds(placed: PlacedEyes, shape: EyeMoodShape) {
+  const halfX = placed.radius * shape.sx;
+  const halfY = placed.radius * shape.sy;
+  const horizontalRoom = Math.max(0, placed.spread - halfX);
+  const verticalRoom = Math.max(0, placed.verticalBudget - halfY);
+  return {
+    minX: -horizontalRoom,
+    maxX: horizontalRoom,
+    minY: placed.eyeY - verticalRoom,
+    maxY: placed.eyeY + verticalRoom,
+  };
+}
+
 const FORWARD = new THREE.Vector3(0, 0, 1);
 const alignScratch = new THREE.Quaternion();
 const tiltScratch = new THREE.Quaternion();
@@ -273,7 +290,14 @@ export function placeEyes(geometry: THREE.BufferGeometry, id: SilhouetteId): Pla
     ? [left, mirrorAnchor(left)]
     : [mirrorAnchor(right), right];
 
-  return { eyes, radius, sink: layout.sink };
+  return {
+    eyes,
+    radius,
+    sink: layout.sink,
+    spread,
+    eyeY: y,
+    verticalBudget: size.y * 0.12,
+  };
 }
 
 function mirrorAnchor(anchor: EyeAnchor): EyeAnchor {
